@@ -3,6 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import FormField from '../components/FormField';
+import Input from '../components/Input';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -37,52 +41,48 @@ const Login = () => {
   };
 
   return (
-    <div className="container" style={{ maxWidth: '440px', marginTop: '3rem' }}>
-      <div className="card">
-        <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Welcome Back</h2>
+    <div className="container page-auth">
+      <Card className="auth-card">
+        <h1 className="auth-heading">Welcome Back</h1>
         {error && (
-          <div style={{ background: '#fee2e2', color: '#991b1b', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.875rem' }}>
+          <div className="form-alert" role="alert">
             {error}
           </div>
         )}
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
+          <FormField label="Email Address" htmlFor="email">
+            <Input
               type="email"
               id="email"
               name="email"
-              className="form-input"
               required
               value={formData.email}
               onChange={handleChange}
               placeholder="you@example.com"
             />
-          </div>
+          </FormField>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
+          <FormField label="Password" htmlFor="password">
+            <Input
               type="password"
               id="password"
               name="password"
-              className="form-input"
               required
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
             />
-          </div>
+          </FormField>
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={loading}>
+          <Button type="submit" className="button-full" loading={loading}>
             {loading ? 'Authenticating...' : 'Sign In'}
-          </button>
+          </Button>
         </form>
 
-        <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          Don\'t have an account? <Link to="/register">Create one here</Link>
+        <p className="auth-footer">
+          Don't have an account? <Link to="/register">Create one here</Link>
         </p>
-      </div>
+      </Card>
     </div>
   );
 };

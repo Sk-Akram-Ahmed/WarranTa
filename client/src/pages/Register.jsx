@@ -3,9 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import FormField from '../components/FormField';
+import Input from '../components/Input';
 
 const Register = () => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,6 +31,11 @@ const Register = () => {
       return;
     }
 
+    if (!acceptedTerms) {
+      setError('You must agree to the Terms and Conditions and Privacy Policy.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -33,6 +43,7 @@ const Register = () => {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        acceptedTerms,
       });
       login(res.data.user, res.data.token);
       showToast('Registration successful! Welcome.', 'success');
@@ -47,81 +58,88 @@ const Register = () => {
   };
 
   return (
-    <div className="container" style={{ maxWidth: '440px', marginTop: '3rem' }}>
-      <div className="card">
-        <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Create an Account</h2>
+    <div className="container page-auth">
+      <Card className="auth-card">
+        <h1 className="auth-heading">Create an Account</h1>
         {error && (
-          <div style={{ background: '#fee2e2', color: '#991b1b', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.875rem' }}>
+          <div className="form-alert" role="alert">
             {error}
           </div>
         )}
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="name">Full Name</label>
-            <input
+          <FormField label="Full Name" htmlFor="name">
+            <Input
               type="text"
               id="name"
               name="name"
-              className="form-input"
               required
               value={formData.name}
               onChange={handleChange}
               placeholder="Jane Doe"
             />
-          </div>
+          </FormField>
 
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
+          <FormField label="Email Address" htmlFor="email">
+            <Input
               type="email"
               id="email"
               name="email"
-              className="form-input"
               required
               value={formData.email}
               onChange={handleChange}
               placeholder="you@example.com"
             />
-          </div>
+          </FormField>
 
-          <div className="form-group">
-            <label htmlFor="password">Password (min. 6 characters)</label>
-            <input
+          <FormField label="Password (min. 6 characters)" htmlFor="password">
+            <Input
               type="password"
               id="password"
               name="password"
-              className="form-input"
               required
               minLength={6}
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
             />
-          </div>
+          </FormField>
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
+          <FormField label="Confirm Password" htmlFor="confirmPassword">
+            <Input
               type="password"
               id="confirmPassword"
               name="confirmPassword"
-              className="form-input"
               required
               value={formData.confirmPassword}
               onChange={handleChange}
               placeholder="••••••••"
             />
+          </FormField>
+
+          <div className="consent-group">
+            <input
+              type="checkbox"
+              id="acceptedTerms"
+              name="acceptedTerms"
+              required
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+            />
+            <label htmlFor="acceptedTerms">
+              I agree to the <Link to="/terms">Terms and Conditions</Link> and{' '}
+              <Link to="/privacy">Privacy Policy</Link>
+            </label>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={loading}>
+          <Button type="submit" className="button-full" loading={loading}>
             {loading ? 'Creating Account...' : 'Sign Up'}
-          </button>
+          </Button>
         </form>
 
-        <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+        <p className="auth-footer">
           Already have an account? <Link to="/login">Sign in here</Link>
         </p>
-      </div>
+      </Card>
     </div>
   );
 };

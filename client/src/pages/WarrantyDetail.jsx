@@ -4,6 +4,8 @@ import api from '../api/axiosInstance';
 import Spinner from '../components/Spinner';
 import StatusBadge from '../components/StatusBadge';
 import ConfirmModal from '../components/ConfirmModal';
+import Button from '../components/Button';
+import Card from '../components/Card';
 import { useToast } from '../hooks/useToast';
 
 const WarrantyDetail = () => {
@@ -12,6 +14,7 @@ const WarrantyDetail = () => {
   const [loading, setLoading] = useState(true);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [viewingFileId, setViewingFileId] = useState(null);
 
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -44,15 +47,20 @@ const WarrantyDetail = () => {
     }
   };
 
-  const openProtectedFile = async (storedName) => {
+  const openProtectedFile = async (file) => {
+    setViewingFileId(file._id);
     try {
-      const response = await api.get(`/files/${id}/${storedName}`, {
-        responseType: 'blob',
-      });
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: response.headers['content-type'] }));
-      window.open(blobUrl, '_blank');
+      const response = await api.get(`/warranties/${id}/files/${file._id}/view`);
+      const url = response.data.url;
+      if (!url) {
+        throw new Error('No file URL returned');
+      }
+
+      window.open(url, '_blank', 'noopener,noreferrer');
     } catch (err) {
       showToast('Could not open file or access was denied', 'error');
+    } finally {
+      setViewingFileId(null);
     }
   };
 
@@ -60,110 +68,102 @@ const WarrantyDetail = () => {
   if (!warranty) return null;
 
   return (
-    <div className="container" style={{ maxWidth: '840px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-        <Link to="/dashboard" style={{ color: 'var(--text-secondary)' }}>
+    <div className="container page-detail">
+      <div className="detail-toolbar">
+        <Link to="/dashboard" className="text-secondary">
           &larr; Back to Dashboard
         </Link>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <Link to={`/warranties/${warranty._id}/edit`} className="btn btn-secondary">
+        <div className="inline-actions">
+          <Link to={`/warranties/${warranty._id}/edit`} className="button button-secondary">
             Edit
           </Link>
-          <button className="btn btn-danger" onClick={() => setDeleteModalOpen(true)}>
+          <Button variant="danger" onClick={() => setDeleteModalOpen(true)}>
             Delete
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
-          <div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>{warranty.productName}</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>
+      <Card>
+        <div className="detail-heading">
+          <div className="detail-heading-copy">
+            <h1>{warranty.productName}</h1>
+            <p>
               {warranty.brand || 'No Brand'} {warranty.model ? `• Model: ${warranty.model}` : ''}
             </p>
           </div>
-          <div style={{ textAlign: 'right' }}>
+          <div className="detail-status">
             <StatusBadge status={warranty.status} />
-            <div style={{ marginTop: '0.4rem', fontSize: '0.9rem', fontWeight: 600 }}>
+            <div className="detail-remaining">
               {warranty.daysRemaining >= 0 ? `${warranty.daysRemaining} days remaining` : `Expired ${Math.abs(warranty.daysRemaining)} days ago`}
             </div>
           </div>
         </div>
 
-        <div className="grid-2" style={{ marginBottom: '1.5rem' }}>
+        <div className="grid-2 detail-grid">
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Purchase Date</span>
-            <p style={{ fontWeight: 600 }}>{new Date(warranty.purchaseDate).toLocaleDateString()}</p>
+            <span className="detail-label">Purchase Date</span>
+            <p className="detail-value">{new Date(warranty.purchaseDate).toLocaleDateString()}</p>
           </div>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Coverage Duration</span>
-            <p style={{ fontWeight: 600 }}>
+            <span className="detail-label">Coverage Duration</span>
+            <p className="detail-value">
               {warranty.warrantyValue} {warranty.warrantyUnit}
             </p>
           </div>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Expiry Date</span>
-            <p style={{ fontWeight: 600 }}>{new Date(warranty.expiryDate).toLocaleDateString()}</p>
+            <span className="detail-label">Expiry Date</span>
+            <p className="detail-value">{new Date(warranty.expiryDate).toLocaleDateString()}</p>
           </div>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Serial Number</span>
-            <p style={{ fontWeight: 600 }}>{warranty.serialNumber || 'N/A'}</p>
+            <span className="detail-label">Serial Number</span>
+            <p className="detail-value">{warranty.serialNumber || 'N/A'}</p>
           </div>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Store / Merchant</span>
-            <p style={{ fontWeight: 600 }}>{warranty.shopName || 'N/A'}</p>
+            <span className="detail-label">Store / Merchant</span>
+            <p className="detail-value">{warranty.shopName || 'N/A'}</p>
           </div>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Purchase Price</span>
-            <p style={{ fontWeight: 600 }}>{warranty.price ? `$${warranty.price.toFixed(2)}` : 'N/A'}</p>
+            <span className="detail-label">Purchase Price</span>
+            <p className="detail-value">{warranty.price ? `$${warranty.price.toFixed(2)}` : 'N/A'}</p>
           </div>
         </div>
 
         {warranty.notes && (
-          <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: 'var(--radius)' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Notes / Instructions</span>
-            <p style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>{warranty.notes}</p>
+          <div className="detail-notes">
+            <span className="field-label">Notes / Instructions</span>
+            <p>{warranty.notes}</p>
           </div>
         )}
 
         <div>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Attached Documents & Receipts</h3>
+          <h2 className="card-heading">Attached Documents &amp; Receipts</h2>
           {warranty.files && warranty.files.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div className="file-grid">
               {warranty.files.map((file) => (
-                <div
-                  key={file._id}
-                  style={{
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius)',
-                    padding: '0.75rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <p style={{ fontWeight: 600, fontSize: '0.85rem', wordBreak: 'break-all' }}>{file.originalName}</p>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      {(file.size / 1024).toFixed(1)} KB • {file.mimeType.split('/')[1]?.toUpperCase()}
+                <div key={file._id} className="file-card">
+                  <div>
+                    <p className="file-name">{file.originalName}</p>
+                    <span className="file-meta">
+                      {(file.size / 1024).toFixed(1)} KB • {file.format ? file.format.toUpperCase() : 'FILE'}
                     </span>
                   </div>
-                  <button
-                    className="btn btn-secondary"
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '0.4rem' }}
-                    onClick={() => openProtectedFile(file.storedName)}
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    className="button-full"
+                    loading={viewingFileId === file._id}
+                    onClick={() => openProtectedFile(file)}
                   >
-                    View File
-                  </button>
+                    {viewingFileId === file._id ? 'Opening...' : 'View File'}
+                  </Button>
                 </div>
               ))}
             </div>
           ) : (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No bills or warranty cards uploaded for this item.</p>
+            <p className="text-secondary text-sm">No bills or warranty cards uploaded for this item.</p>
           )}
         </div>
-      </div>
+      </Card>
 
       <ConfirmModal
         isOpen={deleteModalOpen}

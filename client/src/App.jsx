@@ -10,16 +10,21 @@ import WarrantyForm from './pages/WarrantyForm';
 import WarrantyDetail from './pages/WarrantyDetail';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
+import { PrivacyPolicy, TermsAndConditions, Contact } from './pages/LegalPages';
+import Footer from './components/Footer';
 
 function App() {
   return (
-    <>
+    <div className="app-shell">
       <Navbar />
-      <main>
+      <main className="app-main">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
+          <Route path="/contact" element={<Contact />} />
 
           <Route
             path="/dashboard"
@@ -65,7 +70,8 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-    </>
+      <Footer />
+    </div>
   );
 }
 

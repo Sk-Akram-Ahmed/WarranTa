@@ -24,6 +24,12 @@ A full-stack web application designed to track consumer product warranties, uplo
    ```bash
    cp .env.example .env
    ```
+   Add your Cloudinary credentials in `.env`:
+   ```env
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
    *Note: If you do not configure SMTP variables, emails will safely log to the server console instead.*
 
 3. Populate the database with test data:
@@ -69,3 +75,13 @@ cd server
 npm test
 ```
 This tests UTC calendar math, month rollover boundaries (Jan 31 + 1 month), leap years, and status evaluation.
+
+## ☁️ Cloudinary storage
+
+Warranty attachments are uploaded to Cloudinary instead of the local server filesystem. The backend stores the Cloudinary `secure_url`, `publicId`, `resourceType`, `format`, and file size in MongoDB. Files are retrieved through signed URLs for authenticated access and are deleted from Cloudinary when a record or file is removed.
+
+## ⚖️ Legal pages and account deletion
+
+The public `/privacy`, `/terms`, and `/contact` pages contain starter policy text. Before deploying, replace placeholders such as `[Your Name]`, `[your-email@example.com]`, `[email provider]`, and `[Your jurisdiction]` with accurate details and have the policies reviewed for your service and jurisdiction.
+
+Users can delete their account from Account Settings after confirming their password. This removes their warranty records and associated uploaded files from active application storage.

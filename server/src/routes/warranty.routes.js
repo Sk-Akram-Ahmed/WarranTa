@@ -59,7 +59,7 @@ router.get(
 );
 
 router.get('/stats', warrantyController.getWarrantyStats);
-
+router.get('/:id/files/:fileId/view', warrantyController.viewFile);
 router.get('/:id', warrantyController.getWarrantyById);
 
 router.put(

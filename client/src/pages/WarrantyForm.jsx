@@ -3,6 +3,10 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import Spinner from '../components/Spinner';
 import { useToast } from '../hooks/useToast';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import FormField from '../components/FormField';
+import Input, { Select, Textarea } from '../components/Input';
 
 const WarrantyForm = () => {
   const { id } = useParams();
@@ -30,6 +34,8 @@ const WarrantyForm = () => {
   const [existingFiles, setExistingFiles] = useState([]);
   const [removedFiles, setRemovedFiles] = useState([]);
   const [newFiles, setNewFiles] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     if (isEditMode) {
@@ -61,6 +67,12 @@ const WarrantyForm = () => {
     }
   }, [id, isEditMode, navigate, showToast]);
 
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -76,19 +88,25 @@ const WarrantyForm = () => {
     }
 
     const validFiles = [];
-    for (let f of selected) {
-      if (f.size > 5 * 1024 * 1024) {
-        showToast(`File ${f.name} exceeds 5 MB limit`, 'error');
+    for (const f of selected) {
+      const fileExtension = f.name.split('.').pop()?.toLowerCase();
+      const validMimeType = ['jpg', 'jpeg', 'png', 'pdf'].includes(fileExtension) || ['image/jpeg', 'image/png', 'application/pdf'].includes(f.type);
+
+      if (f.size > 5 * 1024 * 1024 || !validMimeType) {
+        showToast(`File ${f.name} is invalid or exceeds 5 MB limit. Only JPG, PNG, and PDF files are allowed.`, 'error');
         e.target.value = '';
         return;
       }
       validFiles.push(f);
     }
+
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
     setNewFiles(validFiles);
+    setPreviewUrls(validFiles.filter((file) => file.type.startsWith('image/')).map((file) => URL.createObjectURL(file)));
   };
 
-  const handleRemoveExistingFile = (storedName) => {
-    setRemovedFiles([...removedFiles, storedName]);
+  const handleRemoveExistingFile = (publicId) => {
+    setRemovedFiles((current) => [...new Set([...current, publicId])]);
   };
 
   const handleSubmit = async (e) => {
@@ -119,10 +137,8 @@ const WarrantyForm = () => {
     payload.append('price', formData.price);
     payload.append('notes', formData.notes);
 
-    if (isEditMode) {
-      if (removedFiles.length > 0) {
-        payload.append('removedFiles', removedFiles.join(','));
-      }
+    if (isEditMode && removedFiles.length > 0) {
+      payload.append('removedFiles', removedFiles.join(','));
     }
 
     newFiles.forEach((file) => {
@@ -133,12 +149,20 @@ const WarrantyForm = () => {
       if (isEditMode) {
         await api.put(`/warranties/${id}`, payload, {
           headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            const percent = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+            setUploadProgress(percent);
+          },
         });
         showToast('Warranty updated successfully', 'success');
         navigate(`/warranties/${id}`);
       } else {
         const res = await api.post('/warranties', payload, {
           headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            const percent = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+            setUploadProgress(percent);
+          },
         });
         showToast('Warranty created successfully', 'success');
         navigate(`/warranties/${res.data.data._id}`);
@@ -156,228 +180,215 @@ const WarrantyForm = () => {
       }
     } finally {
       setSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
   if (loading) return <Spinner />;
 
   return (
-    <div className="container" style={{ maxWidth: '720px' }}>
-      <div style={{ marginBottom: '1.25rem' }}>
-        <Link to="/dashboard" style={{ color: 'var(--text-secondary)' }}>
-          &larr; Cancel and return
-        </Link>
+    <div className="container page-narrow">
+      <div className="back-link">
+        <Link to="/dashboard">&larr; Cancel and return</Link>
       </div>
 
-      <div className="card">
-        <h2 style={{ marginBottom: '1.5rem' }}>{isEditMode ? 'Edit Warranty' : 'Add New Warranty'}</h2>
+      <Card>
+        <h1 className="card-heading">{isEditMode ? 'Edit Warranty' : 'Add New Warranty'}</h1>
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="productName">Product Name *</label>
-            <input
+          <FormField label="Product Name *" htmlFor="productName" error={errors.productName}>
+            <Input
               type="text"
               id="productName"
               name="productName"
-              className="form-input"
               required
               value={formData.productName}
               onChange={handleChange}
               placeholder="e.g. MacBook Pro 16 or Sony TV"
             />
-            {errors.productName && <span className="form-error">{errors.productName}</span>}
-          </div>
+          </FormField>
 
-          <div className="grid-2">
-            <div className="form-group">
-              <label htmlFor="brand">Brand</label>
-              <input
+          <div className="form-grid">
+            <FormField label="Brand" htmlFor="brand">
+              <Input
                 type="text"
                 id="brand"
                 name="brand"
-                className="form-input"
                 value={formData.brand}
                 onChange={handleChange}
                 placeholder="e.g. Apple, LG"
               />
-            </div>
-            <div className="form-group">
-              <label htmlFor="model">Model</label>
-              <input
+            </FormField>
+            <FormField label="Model" htmlFor="model">
+              <Input
                 type="text"
                 id="model"
                 name="model"
-                className="form-input"
                 value={formData.model}
                 onChange={handleChange}
                 placeholder="e.g. OLED55C2PUA"
               />
-            </div>
+            </FormField>
           </div>
 
-          <div className="grid-2">
-            <div className="form-group">
-              <label htmlFor="purchaseDate">Purchase Date *</label>
-              <input
+          <div className="form-grid">
+            <FormField label="Purchase Date *" htmlFor="purchaseDate" error={errors.purchaseDate}>
+              <Input
                 type="date"
                 id="purchaseDate"
                 name="purchaseDate"
-                className="form-input"
                 required
                 max={new Date().toISOString().split('T')[0]}
                 value={formData.purchaseDate}
                 onChange={handleChange}
               />
-              {errors.purchaseDate && <span className="form-error">{errors.purchaseDate}</span>}
-            </div>
+            </FormField>
 
-            <div className="form-group">
-              <label>Warranty Period *</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
+            <FormField label="Warranty Period *" htmlFor="warrantyValue" error={errors.warrantyValue}>
+              <div className="form-inline">
+                <Input
+                  id="warrantyValue"
                   type="number"
                   name="warrantyValue"
-                  className="form-input"
                   min="1"
                   required
                   value={formData.warrantyValue}
                   onChange={handleChange}
-                  style={{ width: '45%' }}
                 />
-                <select
+                <Select
                   name="warrantyUnit"
-                  className="form-select"
                   value={formData.warrantyUnit}
                   onChange={handleChange}
-                  style={{ width: '55%' }}
+                  aria-label="Warranty period unit"
                 >
                   <option value="months">Month(s)</option>
                   <option value="years">Year(s)</option>
-                </select>
+                </Select>
               </div>
-              {errors.warrantyValue && <span className="form-error">{errors.warrantyValue}</span>}
-            </div>
+            </FormField>
           </div>
 
-          <div className="grid-2">
-            <div className="form-group">
-              <label htmlFor="serialNumber">Serial Number</label>
-              <input
+          <div className="form-grid">
+            <FormField label="Serial Number" htmlFor="serialNumber">
+              <Input
                 type="text"
                 id="serialNumber"
                 name="serialNumber"
-                className="form-input"
                 value={formData.serialNumber}
                 onChange={handleChange}
                 placeholder="SN-12345678"
               />
-            </div>
-            <div className="form-group">
-              <label htmlFor="shopName">Shop / Merchant Name</label>
-              <input
+            </FormField>
+            <FormField label="Shop / Merchant Name" htmlFor="shopName">
+              <Input
                 type="text"
                 id="shopName"
                 name="shopName"
-                className="form-input"
                 value={formData.shopName}
                 onChange={handleChange}
                 placeholder="e.g. Amazon, Local Store"
               />
-            </div>
+            </FormField>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="price">Purchase Price ($)</label>
-            <input
+          <FormField label="Purchase Price ($)" htmlFor="price">
+            <Input
               type="number"
               step="0.01"
               min="0"
               id="price"
               name="price"
-              className="form-input"
               value={formData.price}
               onChange={handleChange}
               placeholder="0.00"
             />
-          </div>
+          </FormField>
 
-          <div className="form-group">
-            <label htmlFor="notes">Notes</label>
-            <textarea
+          <FormField label="Notes" htmlFor="notes">
+            <Textarea
               id="notes"
               name="notes"
               rows="3"
-              className="form-textarea"
               value={formData.notes}
               onChange={handleChange}
               placeholder="Additional terms, extended coverages, claim phone numbers..."
             />
-          </div>
+          </FormField>
 
           {isEditMode && existingFiles.length > 0 && (
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Current Files</label>
-              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <section className="existing-files">
+              <h2 className="field-label">Current Files</h2>
+              <div className="existing-file-list">
                 {existingFiles.map((file) => {
-                  const isMarked = removedFiles.includes(file.storedName);
+                  const fileIdentifier = file.publicId || file._id;
+                  const isMarked = removedFiles.includes(fileIdentifier);
                   return (
                     <div
-                      key={file.storedName}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.5rem 0.75rem',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius)',
-                        opacity: isMarked ? 0.4 : 1,
-                        textDecoration: isMarked ? 'line-through' : 'none',
-                      }}
+                      key={fileIdentifier}
+                      className={`file-row${isMarked ? ' file-row-removed' : ''}`}
                     >
-                      <span style={{ fontSize: '0.875rem' }}>{file.originalName}</span>
+                      <span className="file-name">{file.originalName}</span>
                       {!isMarked ? (
-                        <button
+                        <Button
                           type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', color: '#dc2626' }}
-                          onClick={() => handleRemoveExistingFile(file.storedName)}
+                          variant="ghost"
+                          size="small"
+                          className="button-danger-text"
+                          onClick={() => handleRemoveExistingFile(fileIdentifier)}
                         >
                           Remove
-                        </button>
+                        </Button>
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: '#dc2626' }}>Marked for deletion</span>
+                        <span className="file-remove-label">Marked for deletion</span>
                       )}
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </section>
           )}
 
-          <div className="form-group">
-            <label htmlFor="file-input">
-              Upload Bills / Warranty Cards (Max 3 files, JPG/PNG/PDF, ≤ 5MB each)
-            </label>
-            <input
+          {previewUrls.length > 0 && (
+            <section className="new-file-preview">
+              <h2 className="field-label">Selected image previews</h2>
+              <div className="file-preview-grid">
+                {previewUrls.map((url, index) => (
+                  <img key={`${url}-${index}`} src={url} alt={`Preview ${index + 1}`} className="preview-image" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <FormField label="Upload Bills / Warranty Cards (Max 3 files, JPG/PNG/PDF, ≤ 5MB each)" htmlFor="file-input">
+            <Input
               type="file"
               id="file-input"
               multiple
               accept=".jpg,.jpeg,.png,.pdf"
-              className="form-input"
+              className="file-input"
               onChange={handleFileChange}
             />
-          </div>
+          </FormField>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' }}>
-            <Link to="/dashboard" className="btn btn-secondary">
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="upload-progress" aria-live="polite">
+              <span>Uploading files: {uploadProgress}%</span>
+              <div className="progress-bar">
+                <span style={{ width: `${uploadProgress}%` }} />
+              </div>
+            </div>
+          )}
+
+          <div className="form-actions">
+            <Link to="/dashboard" className="button button-secondary">
               Cancel
             </Link>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? 'Saving...' : isEditMode ? 'Update Warranty' : 'Save Warranty'}
-            </button>
+            <Button type="submit" loading={submitting}>
+              {submitting ? (uploadProgress > 0 ? `Saving... ${uploadProgress}%` : 'Saving...') : isEditMode ? 'Update Warranty' : 'Save Warranty'}
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };

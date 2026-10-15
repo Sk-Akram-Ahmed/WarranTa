@@ -21,6 +21,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password hash is required'],
     },
+    acceptedTermsAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

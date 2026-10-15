@@ -6,12 +6,23 @@ const morgan = require('morgan');
 const authRoutes = require('./src/routes/auth.routes');
 const userRoutes = require('./src/routes/user.routes');
 const warrantyRoutes = require('./src/routes/warranty.routes');
-const fileRoutes = require('./src/routes/file.routes');
 const errorHandler = require('./src/middleware/errorHandler');
 
 const app = express();
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
+        frameSrc: ["'self'", 'https://res.cloudinary.com'],
+        scriptSrc: ["'self'"],
+        connectSrc: ["'self'", 'http://localhost:5173', 'http://127.0.0.1:5173'],
+      },
+    },
+  })
+);
 
 const clientOrigins = new Set(
   (process.env.CLIENT_URL || 'http://localhost:5173')
@@ -44,7 +55,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/warranties', warrantyRoutes);
-app.use('/api/files', fileRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

@@ -10,7 +10,14 @@ const generateToken = (userId) => {
 
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, acceptedTerms } = req.body;
+
+    if (acceptedTerms !== true) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must agree to the Terms and Conditions and Privacy Policy.',
+      });
+    }
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -27,6 +34,7 @@ exports.register = async (req, res, next) => {
       name,
       email,
       passwordHash,
+      acceptedTermsAt: new Date(),
     });
 
     const token = generateToken(user._id);

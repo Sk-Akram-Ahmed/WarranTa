@@ -1,14 +1,9 @@
 import React from 'react';
+import Badge from './Badge';
 
 const StatusBadge = ({ status }) => {
-  let badgeClass = 'badge-active';
-  if (status === 'Expiring Soon') {
-    badgeClass = 'badge-expiring';
-  } else if (status === 'Expired') {
-    badgeClass = 'badge-expired';
-  }
-
-  return <span className={`badge ${badgeClass}`}>{status}</span>;
+  const badgeStatus = status === 'Expiring Soon' ? 'expiring' : status === 'Expired' ? 'expired' : 'active';
+  return <Badge status={badgeStatus}>{status}</Badge>;
 };
 
 export default StatusBadge;

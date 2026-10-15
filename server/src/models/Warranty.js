@@ -3,9 +3,12 @@ const mongoose = require('mongoose');
 const fileSubSchema = new mongoose.Schema(
   {
     originalName: { type: String, required: true },
-    storedName: { type: String, required: true },
-    mimeType: { type: String, required: true },
+    url: { type: String, required: true },
+    publicId: { type: String, required: true },
+    resourceType: { type: String, required: true },
+    format: { type: String, required: true },
     size: { type: Number, required: true },
+    uploadedAt: { type: Date, default: Date.now },
   },
   { _id: true }
 );

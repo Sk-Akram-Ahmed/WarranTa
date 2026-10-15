@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
+const Warranty = require('../models/Warranty');
+const { deleteFile } = require('../services/cloudinaryService');
 
 exports.updateProfile = async (req, res, next) => {
   try {
@@ -47,6 +49,47 @@ exports.changePassword = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Password changed successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteAccount = async (req, res, next) => {
+  try {
+    const { password } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password provided is incorrect.',
+      });
+    }
+
+    const warranties = await Warranty.find({ userId: user._id });
+
+    for (const warranty of warranties) {
+      for (const file of warranty.files || []) {
+        try {
+          await deleteFile(file.publicId, file.resourceType, 'authenticated');
+        } catch (error) {
+          console.error('[Cloudinary delete account cleanup error]', error.message);
+        }
+      }
+    }
+
+    await Warranty.deleteMany({ userId: user._id });
+    await User.deleteOne({ _id: user._id });
+
+    res.status(200).json({
+      success: true,
+      message: 'Account and associated data deleted successfully.',
     });
   } catch (error) {
     next(error);

@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import Spinner from '../components/Spinner';
 import StatusBadge from '../components/StatusBadge';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import Input, { Select } from '../components/Input';
 import { useToast } from '../hooks/useToast';
 
 const Dashboard = () => {
@@ -67,69 +70,69 @@ const Dashboard = () => {
 
   return (
     <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>Warranty Dashboard</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Monitor and manage product coverage and expiration schedules</p>
+      <header className="page-header">
+        <div className="page-header-copy">
+          <h1>Warranty Dashboard</h1>
+          <p className="page-description">Monitor and manage product coverage and expiration schedules</p>
         </div>
-        <Link to="/warranties/new" className="btn btn-primary">
+        <Link to="/warranties/new" className="button button-primary">
           + Add New Warranty
         </Link>
+      </header>
+
+      <div className="grid-4 stats-grid">
+        <Card className="stat-card stat-total">
+          <span className="stat-label">Total Warranties</span>
+          <strong className="stat-value">{statsLoading ? '...' : stats.total}</strong>
+        </Card>
+        <Card className="stat-card stat-active">
+          <span className="stat-label">Active</span>
+          <strong className="stat-value">{statsLoading ? '...' : stats.active}</strong>
+        </Card>
+        <Card className="stat-card stat-expiring">
+          <span className="stat-label">Expiring Soon (≤30d)</span>
+          <strong className="stat-value">{statsLoading ? '...' : stats.expiringSoon}</strong>
+        </Card>
+        <Card className="stat-card stat-expired">
+          <span className="stat-label">Expired</span>
+          <strong className="stat-value">{statsLoading ? '...' : stats.expired}</strong>
+        </Card>
       </div>
 
-      <div className="grid-4" style={{ marginBottom: '2rem' }}>
-        <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>TOTAL WARRANTIES</span>
-          <h2 style={{ fontSize: '1.85rem', marginTop: '0.5rem' }}>{statsLoading ? '...' : stats.total}</h2>
-        </div>
-        <div className="card" style={{ borderLeft: '4px solid #16a34a' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ACTIVE</span>
-          <h2 style={{ fontSize: '1.85rem', marginTop: '0.5rem', color: '#16a34a' }}>{statsLoading ? '...' : stats.active}</h2>
-        </div>
-        <div className="card" style={{ borderLeft: '4px solid #d97706' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>EXPIRING SOON (≤30D)</span>
-          <h2 style={{ fontSize: '1.85rem', marginTop: '0.5rem', color: '#d97706' }}>{statsLoading ? '...' : stats.expiringSoon}</h2>
-        </div>
-        <div className="card" style={{ borderLeft: '4px solid #dc2626' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>EXPIRED</span>
-          <h2 style={{ fontSize: '1.85rem', marginTop: '0.5rem', color: '#dc2626' }}>{statsLoading ? '...' : stats.expired}</h2>
-        </div>
-      </div>
-
-      <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
+      <Card className="search-panel">
+        <form onSubmit={handleSearchSubmit} className="search-form">
+          <Input
             type="text"
-            className="form-input"
+            className="search-query"
             placeholder="Search by product name or brand..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ flex: '1 1 220px' }}
+            aria-label="Search by product name or brand"
           />
 
-          <select
-            className="form-select"
+          <Select
+            className="search-status"
             value={statusFilter}
+            aria-label="Filter by status"
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            style={{ flex: '0 1 160px' }}
           >
             <option value="">All Statuses</option>
             <option value="Active">Active</option>
             <option value="Expiring Soon">Expiring Soon</option>
             <option value="Expired">Expired</option>
-          </select>
+          </Select>
 
-          <select
-            className="form-select"
+          <Select
+            className="search-sort"
             value={sort}
+            aria-label="Sort warranties"
             onChange={(e) => {
               setSort(e.target.value);
               setPage(1);
             }}
-            style={{ flex: '0 1 180px' }}
           >
             <option value="expiry_asc">Expiry: Nearest First</option>
             <option value="expiry_desc">Expiry: Furthest First</option>
@@ -137,74 +140,73 @@ const Dashboard = () => {
             <option value="purchase_asc">Purchased: Oldest</option>
             <option value="name_asc">Name: A - Z</option>
             <option value="name_desc">Name: Z - A</option>
-          </select>
+          </Select>
 
-          <button type="submit" className="btn btn-secondary" style={{ flexShrink: 0 }}>
+          <Button type="submit" variant="secondary">
             Search
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
 
-      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+      <Card className="card-flat">
         {loading ? (
           <Spinner />
         ) : warranties.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
-            <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+          <div className="empty-state">
+            <p>
               No warranties yet, add your first one to get started!
             </p>
-            <Link to="/warranties/new" className="btn btn-primary">
+            <Link to="/warranties/new" className="button button-primary">
               Register Warranty
             </Link>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.925rem' }}>
+          <div className="table-wrap">
+            <table className="warranty-table">
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Product</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Brand / Model</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Purchased</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Expiry Date</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Status</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Remaining</th>
-                  <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Action</th>
+                <tr>
+                  <th>Product</th>
+                  <th>Brand / Model</th>
+                  <th>Purchased</th>
+                  <th>Expiry Date</th>
+                  <th>Status</th>
+                  <th>Remaining</th>
+                  <th className="table-action">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {warranties.map((w) => (
-                  <tr key={w._id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '1rem 1.25rem', fontWeight: 600 }}>
+                  <tr key={w._id}>
+                    <td>
                       <Link to={`/warranties/${w._id}`}>{w.productName}</Link>
                     </td>
-                    <td style={{ padding: '1rem 1rem', color: 'var(--text-secondary)' }}>
+                    <td className="text-secondary">
                       {w.brand || '—'} {w.model ? `(${w.model})` : ''}
                     </td>
-                    <td style={{ padding: '1rem 1rem', color: 'var(--text-secondary)' }}>
+                    <td className="text-secondary">
                       {new Date(w.purchaseDate).toLocaleDateString()}
                     </td>
-                    <td style={{ padding: '1rem 1rem', fontWeight: 500 }}>
+                    <td>
                       {new Date(w.expiryDate).toLocaleDateString()}
                     </td>
-                    <td style={{ padding: '1rem 1rem' }}>
+                    <td>
                       <StatusBadge status={w.status} />
                     </td>
-                    <td style={{ padding: '1rem 1rem' }}>
+                    <td>
                       {w.daysRemaining >= 0 ? (
-                        <span style={{ color: w.daysRemaining <= 30 ? '#d97706' : '#16a34a', fontWeight: 600 }}>
+                        <span className={`remaining-${w.daysRemaining <= 30 ? 'expiring' : 'active'}`}>
                           {w.daysRemaining} day{w.daysRemaining === 1 ? '' : 's'}
                         </span>
                       ) : (
-                        <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                        <span className="remaining-expired">
                           Ended {Math.abs(w.daysRemaining)}d ago
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+                    <td className="table-action">
                       <Link
                         to={`/warranties/${w._id}`}
-                        className="btn btn-secondary"
-                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.825rem' }}
+                        className="button button-secondary button-small"
                       >
                         View
                       </Link>
@@ -215,27 +217,29 @@ const Dashboard = () => {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
-          <button
-            className="btn btn-secondary"
+        <div className="pagination">
+          <Button
+            variant="secondary"
+            size="small"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
           >
             Previous
-          </button>
-          <span style={{ display: 'flex', alignItems: 'center', padding: '0 0.75rem', fontWeight: 500 }}>
+          </Button>
+          <span className="pagination-label">
             Page {page} of {totalPages}
           </span>
-          <button
-            className="btn btn-secondary"
+          <Button
+            variant="secondary"
+            size="small"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
           >
             Next
-          </button>
+          </Button>
         </div>
       )}
     </div>

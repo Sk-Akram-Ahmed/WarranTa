@@ -32,4 +32,11 @@ router.put(
   userController.changePassword
 );
 
+router.delete(
+  '/me',
+  [body('password').notEmpty().withMessage('Password is required')],
+  handleValidationErrors,
+  userController.deleteAccount
+);
+
 module.exports = router;

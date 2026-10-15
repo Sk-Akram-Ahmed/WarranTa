@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import Button from './Button';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -15,7 +16,8 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="container navbar-inner">
         <Link to={user ? '/dashboard' : '/login'} className="navbar-brand">
-          🛡️ WarrantyTracker
+          <span className="brand-mark" aria-hidden="true">W</span>
+          <span>Warranty Tracker</span>
         </Link>
         <ul className="nav-links">
           {user ? (
@@ -36,13 +38,9 @@ const Navbar = () => {
                 </NavLink>
               </li>
               <li>
-                <button
-                  onClick={handleLogout}
-                  className="btn btn-secondary"
-                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                >
+                <Button variant="secondary" size="small" onClick={handleLogout}>
                   Logout
-                </button>
+                </Button>
               </li>
             </>
           ) : (

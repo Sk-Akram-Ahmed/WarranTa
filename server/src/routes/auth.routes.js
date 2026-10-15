@@ -25,6 +25,9 @@ router.post(
     body('name').trim().notEmpty().withMessage('Name is required').isLength({ max: 100 }),
     body('email').trim().isEmail().withMessage('Valid email is required').normalizeEmail(),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+    body('acceptedTerms')
+      .custom((value) => value === true)
+      .withMessage('You must agree to the Terms and Conditions and Privacy Policy.'),
   ],
   handleValidationErrors,
   authController.register
