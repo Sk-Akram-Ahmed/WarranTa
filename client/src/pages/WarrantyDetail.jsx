@@ -1,180 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import Spinner from '../components/Spinner';
 import StatusBadge from '../components/StatusBadge';
 import ConfirmModal from '../components/ConfirmModal';
+import Modal from '../components/Modal';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import ProgressBar from '../components/ProgressBar';
 import { useToast } from '../hooks/useToast';
 
+const formatDate = (value) => new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+const price = (value) => value ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value) : 'Not added';
+const statusKey = (status) => status === 'Expiring Soon' ? 'expiring' : status === 'Expired' ? 'expired' : 'active';
+const Icon = ({ name }) => { const icons = { product: <><rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 9h6v6H9z"/></>, receipt: <><path d="M7 3h10v18l-2.5-1.5L12 21l-2.5-1.5L7 21V3Z"/><path d="M10 8h4M10 12h4"/></>, shop: <><path d="M4 10h16v10H4zM3 10l2-6h14l2 6"/><path d="M8 20v-6h8v6"/></>, serial: <><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M10 10h7M7 14h10"/></> }; return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icons[name]}</svg>; };
+
 const WarrantyDetail = () => {
-  const { id } = useParams();
-  const [warranty, setWarranty] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [viewingFileId, setViewingFileId] = useState(null);
-
-  const { showToast } = useToast();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchWarranty = async () => {
-      try {
-        const res = await api.get(`/warranties/${id}`);
-        setWarranty(res.data.data);
-      } catch (err) {
-        showToast('Failed to load warranty record', 'error');
-        navigate('/dashboard');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchWarranty();
-  }, [id, navigate, showToast]);
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await api.delete(`/warranties/${id}`);
-      showToast('Warranty deleted successfully', 'success');
-      navigate('/dashboard');
-    } catch (err) {
-      showToast('Failed to delete warranty', 'error');
-      setIsDeleting(false);
-      setDeleteModalOpen(false);
-    }
-  };
-
-  const openProtectedFile = async (file) => {
-    setViewingFileId(file._id);
-    try {
-      const response = await api.get(`/warranties/${id}/files/${file._id}/view`);
-      const url = response.data.url;
-      if (!url) {
-        throw new Error('No file URL returned');
-      }
-
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch (err) {
-      showToast('Could not open file or access was denied', 'error');
-    } finally {
-      setViewingFileId(null);
-    }
-  };
-
-  if (loading) return <Spinner />;
-  if (!warranty) return null;
-
-  return (
-    <div className="container page-detail">
-      <div className="detail-toolbar">
-        <Link to="/dashboard" className="text-secondary">
-          &larr; Back to Dashboard
-        </Link>
-        <div className="inline-actions">
-          <Link to={`/warranties/${warranty._id}/edit`} className="button button-secondary">
-            Edit
-          </Link>
-          <Button variant="danger" onClick={() => setDeleteModalOpen(true)}>
-            Delete
-          </Button>
-        </div>
-      </div>
-
-      <Card>
-        <div className="detail-heading">
-          <div className="detail-heading-copy">
-            <h1>{warranty.productName}</h1>
-            <p>
-              {warranty.brand || 'No Brand'} {warranty.model ? `• Model: ${warranty.model}` : ''}
-            </p>
-          </div>
-          <div className="detail-status">
-            <StatusBadge status={warranty.status} />
-            <div className="detail-remaining">
-              {warranty.daysRemaining >= 0 ? `${warranty.daysRemaining} days remaining` : `Expired ${Math.abs(warranty.daysRemaining)} days ago`}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid-2 detail-grid">
-          <div>
-            <span className="detail-label">Purchase Date</span>
-            <p className="detail-value">{new Date(warranty.purchaseDate).toLocaleDateString()}</p>
-          </div>
-          <div>
-            <span className="detail-label">Coverage Duration</span>
-            <p className="detail-value">
-              {warranty.warrantyValue} {warranty.warrantyUnit}
-            </p>
-          </div>
-          <div>
-            <span className="detail-label">Expiry Date</span>
-            <p className="detail-value">{new Date(warranty.expiryDate).toLocaleDateString()}</p>
-          </div>
-          <div>
-            <span className="detail-label">Serial Number</span>
-            <p className="detail-value">{warranty.serialNumber || 'N/A'}</p>
-          </div>
-          <div>
-            <span className="detail-label">Store / Merchant</span>
-            <p className="detail-value">{warranty.shopName || 'N/A'}</p>
-          </div>
-          <div>
-            <span className="detail-label">Purchase Price</span>
-            <p className="detail-value">{warranty.price ? `$${warranty.price.toFixed(2)}` : 'N/A'}</p>
-          </div>
-        </div>
-
-        {warranty.notes && (
-          <div className="detail-notes">
-            <span className="field-label">Notes / Instructions</span>
-            <p>{warranty.notes}</p>
-          </div>
-        )}
-
-        <div>
-          <h2 className="card-heading">Attached Documents &amp; Receipts</h2>
-          {warranty.files && warranty.files.length > 0 ? (
-            <div className="file-grid">
-              {warranty.files.map((file) => (
-                <div key={file._id} className="file-card">
-                  <div>
-                    <p className="file-name">{file.originalName}</p>
-                    <span className="file-meta">
-                      {(file.size / 1024).toFixed(1)} KB • {file.format ? file.format.toUpperCase() : 'FILE'}
-                    </span>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    className="button-full"
-                    loading={viewingFileId === file._id}
-                    onClick={() => openProtectedFile(file)}
-                  >
-                    {viewingFileId === file._id ? 'Opening...' : 'View File'}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-secondary text-sm">No bills or warranty cards uploaded for this item.</p>
-          )}
-        </div>
-      </Card>
-
-      <ConfirmModal
-        isOpen={deleteModalOpen}
-        title="Delete Warranty Record"
-        message="Are you sure you want to delete this warranty record and all uploaded bill files? This action cannot be reversed."
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteModalOpen(false)}
-        loading={isDeleting}
-      />
-    </div>
-  );
+  const { id } = useParams(); const navigate = useNavigate(); const { showToast } = useToast();
+  const [warranty, setWarranty] = useState(null); const [loading, setLoading] = useState(true); const [deleteOpen, setDeleteOpen] = useState(false); const [deleting, setDeleting] = useState(false); const [viewingFileId, setViewingFileId] = useState(null); const [lightbox, setLightbox] = useState(null);
+  useEffect(() => { (async () => { try { const response = await api.get(`/warranties/${id}`); setWarranty(response.data.data); } catch { showToast('Failed to load warranty record', 'error'); navigate('/dashboard'); } finally { setLoading(false); } })(); }, [id, navigate, showToast]);
+  const elapsed = useMemo(() => { if (!warranty) return 0; const start = new Date(warranty.purchaseDate).getTime(); const end = new Date(warranty.expiryDate).getTime(); return Math.max(0, Math.min(100, ((Date.now() - start) / (end - start || 1)) * 100)); }, [warranty]);
+  const getFileUrl = async (file) => { const response = await api.get(`/warranties/${id}/files/${file._id}/view`); if (!response.data.url) throw new Error('No file URL returned'); return response.data.url; };
+  const viewFile = async (file) => { setViewingFileId(file._id); try { window.open(await getFileUrl(file), '_blank', 'noopener,noreferrer'); } catch { showToast('Could not open file or access was denied', 'error'); } finally { setViewingFileId(null); } };
+  const previewFile = async (file) => { if (file.format?.toLowerCase() === 'pdf') return viewFile(file); setViewingFileId(file._id); try { setLightbox({ file, url: await getFileUrl(file) }); } catch { showToast('Could not open file or access was denied', 'error'); } finally { setViewingFileId(null); } };
+  const deleteWarranty = async () => { setDeleting(true); try { await api.delete(`/warranties/${id}`); showToast('Warranty deleted permanently', 'success'); navigate('/dashboard'); } catch { showToast('Failed to delete warranty', 'error'); setDeleting(false); setDeleteOpen(false); } };
+  if (loading) return <Spinner />; if (!warranty) return null;
+  const daysText = warranty.daysRemaining >= 0 ? `${warranty.daysRemaining} days remaining` : `Expired ${Math.abs(warranty.daysRemaining)} days ago`;
+  return <div className="container detail-page"><nav className="breadcrumbs" aria-label="Breadcrumb"><Link to="/dashboard">Dashboard</Link><span aria-hidden="true">/</span><span aria-current="page">{warranty.productName}</span></nav><div className="detail-toolbar"><Link to="/dashboard" className="text-button">← All warranties</Link><div className="inline-actions"><Link to={`/warranties/${warranty._id}/edit`} className="button button-secondary">Edit</Link><Button variant="danger" onClick={() => setDeleteOpen(true)}>Delete</Button></div></div>
+    <section className="detail-hero"><div className="detail-hero-product"><span className="detail-product-icon"><Icon name="product" /></span><div><p className="eyebrow">{[warranty.brand, warranty.model].filter(Boolean).join(' · ') || 'Product warranty'}</p><h1>{warranty.productName}</h1><p>{daysText}</p></div></div><StatusBadge status={warranty.status} /></section>
+    <Card className="coverage-timeline"><div className="timeline-labels"><span><strong>Purchased</strong>{formatDate(warranty.purchaseDate)}</span><span className="timeline-today"><strong>Today</strong>{formatDate(new Date())}</span><span><strong>Expires</strong>{formatDate(warranty.expiryDate)}</span></div><ProgressBar value={elapsed} status={statusKey(warranty.status)} label="Warranty timeline" /></Card>
+    <div className="detail-content-grid"><div className="detail-main"><Card><div className="section-heading"><div><p className="eyebrow">Proof of purchase</p><h2>Documents</h2></div><span className="text-muted text-sm">{warranty.files?.length || 0} attached</span></div>{warranty.files?.length ? <div className="document-gallery">{warranty.files.map((file) => <article className="document-card" key={file._id}><button type="button" className="document-preview" onClick={() => previewFile(file)} aria-label={`Preview ${file.originalName}`}>{file.format?.toLowerCase() === 'pdf' ? <span>PDF</span> : <img src={file.url} alt="" onError={(event) => { event.currentTarget.style.display = 'none'; }} />}<span className="document-preview-overlay">Preview</span></button><div><strong>{file.originalName}</strong><small>{(file.size / 1024).toFixed(1)} KB · {file.format?.toUpperCase() || 'FILE'}</small></div><Button variant="secondary" size="small" className="button-full" loading={viewingFileId === file._id} onClick={() => viewFile(file)}>View file</Button></article>)}</div> : <p className="text-secondary text-sm">No bills or warranty cards have been added.</p>}</Card>{warranty.notes && <Card className="claim-box"><div className="claim-icon"><Icon name="receipt" /></div><div><p className="eyebrow">How to claim</p><h2>Keep these details handy</h2><div className="claim-grid"><span><small>Shop</small><strong>{warranty.shopName || 'Not added'}</strong></span><span><small>Serial number</small><strong>{warranty.serialNumber || 'Not added'}</strong></span></div><p>{warranty.notes}</p></div></Card>}</div>
+      <aside className="detail-aside"><Card><p className="eyebrow">Warranty details</p><h2>Coverage summary</h2><dl className="details-list"><div><dt>Purchase date</dt><dd>{formatDate(warranty.purchaseDate)}</dd></div><div><dt>Coverage period</dt><dd>{warranty.warrantyValue} {warranty.warrantyUnit}</dd></div><div><dt>Expiry date</dt><dd>{formatDate(warranty.expiryDate)}</dd></div><div><dt>Purchase price</dt><dd>{price(warranty.price)}</dd></div><div><dt><span className="detail-mini-icon"><Icon name="shop" /></span>Shop</dt><dd>{warranty.shopName || 'Not added'}</dd></div><div><dt><span className="detail-mini-icon"><Icon name="serial" /></span>Serial number</dt><dd>{warranty.serialNumber || 'Not added'}</dd></div></dl></Card></aside></div>
+    <ConfirmModal isOpen={deleteOpen} title={`Delete ${warranty.productName}?`} message={`This permanently deletes ${warranty.productName} and its uploaded documents. This action cannot be undone.`} onConfirm={deleteWarranty} onCancel={() => setDeleteOpen(false)} loading={deleting} />
+    <Modal open={Boolean(lightbox)} title={lightbox?.file.originalName || 'Document preview'} onClose={() => setLightbox(null)} className="lightbox-modal"><div className="lightbox-content">{lightbox?.url && <img src={lightbox.url} alt={lightbox.file.originalName} />}</div></Modal>
+  </div>;
 };
-
 export default WarrantyDetail;

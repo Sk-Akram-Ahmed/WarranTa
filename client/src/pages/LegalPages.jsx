@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import Card from '../components/Card';
 
 const LAST_UPDATED = 'October 14, 2026';
-const CONTACT_EMAIL = '[your-email@example.com]';
+const CONTACT_EMAIL = 'support@warrantytracker.app';
 
 const LegalPage = ({ title, intro, sections }) => (
   <article className="container legal-page">
     <header className="legal-header">
-      <p className="legal-eyebrow">Warranty Tracker</p>
+      <p className="legal-eyebrow">Warranty Tracker · Legal</p>
       <h1>{title}</h1>
       <p className="legal-updated">Last updated: {LAST_UPDATED}</p>
       <p className="legal-intro">{intro}</p>

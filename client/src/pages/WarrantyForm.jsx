@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import Spinner from '../components/Spinner';
@@ -7,390 +7,39 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 import FormField from '../components/FormField';
 import Input, { Select, Textarea } from '../components/Input';
+import ProgressBar from '../components/ProgressBar';
+
+const steps = ['Product', 'Warranty', 'Bills'];
+const today = () => new Date().toISOString().split('T')[0];
+const dateLabel = (value) => new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
 
 const WarrantyForm = () => {
-  const { id } = useParams();
-  const isEditMode = Boolean(id);
-  const navigate = useNavigate();
-  const { showToast } = useToast();
+  const { id } = useParams(); const isEditMode = Boolean(id); const navigate = useNavigate(); const { showToast } = useToast();
+  const [loading, setLoading] = useState(isEditMode); const [submitting, setSubmitting] = useState(false); const [step, setStep] = useState(0); const [errors, setErrors] = useState({}); const [showDetails, setShowDetails] = useState(false); const [isDragging, setIsDragging] = useState(false);
+  const [formData, setFormData] = useState({ productName: '', brand: '', model: '', serialNumber: '', purchaseDate: '', warrantyValue: 12, warrantyUnit: 'months', shopName: '', price: '', notes: '' });
+  const [existingFiles, setExistingFiles] = useState([]); const [removedFiles, setRemovedFiles] = useState([]); const [newFiles, setNewFiles] = useState([]); const [uploadProgress, setUploadProgress] = useState(0); const fileInputRef = useRef(null);
+  const previewFiles = useMemo(() => newFiles.map((file) => ({ file, url: file.type.startsWith('image/') ? URL.createObjectURL(file) : null })), [newFiles]);
+  const expiryPreview = useMemo(() => { if (!formData.purchaseDate || Number(formData.warrantyValue) < 1) return null; const result = new Date(`${formData.purchaseDate}T00:00:00`); if (formData.warrantyUnit === 'years') result.setFullYear(result.getFullYear() + Number(formData.warrantyValue)); else result.setMonth(result.getMonth() + Number(formData.warrantyValue)); return result; }, [formData.purchaseDate, formData.warrantyUnit, formData.warrantyValue]);
 
-  const [loading, setLoading] = useState(isEditMode);
-  const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
+  useEffect(() => () => previewFiles.forEach(({ url }) => url && URL.revokeObjectURL(url)), [previewFiles]);
+  useEffect(() => { if (!isEditMode) return; (async () => { try { const res = await api.get(`/warranties/${id}`); const data = res.data.data; setFormData({ productName: data.productName || '', brand: data.brand || '', model: data.model || '', serialNumber: data.serialNumber || '', purchaseDate: data.purchaseDate?.split('T')[0] || '', warrantyValue: data.warrantyValue || 1, warrantyUnit: data.warrantyUnit || 'months', shopName: data.shopName || '', price: data.price ?? '', notes: data.notes || '' }); setExistingFiles(data.files || []); setShowDetails(Boolean(data.serialNumber || data.shopName || data.price || data.notes)); } catch { showToast('Failed to load warranty for editing', 'error'); navigate('/dashboard'); } finally { setLoading(false); } })(); }, [id, isEditMode, navigate, showToast]);
 
-  const [formData, setFormData] = useState({
-    productName: '',
-    brand: '',
-    model: '',
-    serialNumber: '',
-    purchaseDate: '',
-    warrantyValue: 12,
-    warrantyUnit: 'months',
-    shopName: '',
-    price: '',
-    notes: '',
-  });
-
-  const [existingFiles, setExistingFiles] = useState([]);
-  const [removedFiles, setRemovedFiles] = useState([]);
-  const [newFiles, setNewFiles] = useState([]);
-  const [previewUrls, setPreviewUrls] = useState([]);
-  const [uploadProgress, setUploadProgress] = useState(0);
-
-  useEffect(() => {
-    if (isEditMode) {
-      const loadWarranty = async () => {
-        try {
-          const res = await api.get(`/warranties/${id}`);
-          const data = res.data.data;
-          setFormData({
-            productName: data.productName || '',
-            brand: data.brand || '',
-            model: data.model || '',
-            serialNumber: data.serialNumber || '',
-            purchaseDate: data.purchaseDate ? data.purchaseDate.split('T')[0] : '',
-            warrantyValue: data.warrantyValue || 1,
-            warrantyUnit: data.warrantyUnit || 'months',
-            shopName: data.shopName || '',
-            price: data.price !== undefined ? data.price : '',
-            notes: data.notes || '',
-          });
-          setExistingFiles(data.files || []);
-        } catch (err) {
-          showToast('Failed to load warranty for editing', 'error');
-          navigate('/dashboard');
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadWarranty();
-    }
-  }, [id, isEditMode, navigate, showToast]);
-
-  useEffect(() => {
-    return () => {
-      previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [previewUrls]);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleFileChange = (e) => {
-    const selected = Array.from(e.target.files);
-    const totalRemainingCapacity = 3 - (existingFiles.length - removedFiles.length);
-
-    if (selected.length > totalRemainingCapacity) {
-      showToast(`You can only upload up to ${totalRemainingCapacity} more file(s). Maximum total is 3.`, 'error');
-      e.target.value = '';
-      return;
-    }
-
-    const validFiles = [];
-    for (const f of selected) {
-      const fileExtension = f.name.split('.').pop()?.toLowerCase();
-      const validMimeType = ['jpg', 'jpeg', 'png', 'pdf'].includes(fileExtension) || ['image/jpeg', 'image/png', 'application/pdf'].includes(f.type);
-
-      if (f.size > 5 * 1024 * 1024 || !validMimeType) {
-        showToast(`File ${f.name} is invalid or exceeds 5 MB limit. Only JPG, PNG, and PDF files are allowed.`, 'error');
-        e.target.value = '';
-        return;
-      }
-      validFiles.push(f);
-    }
-
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    setNewFiles(validFiles);
-    setPreviewUrls(validFiles.filter((file) => file.type.startsWith('image/')).map((file) => URL.createObjectURL(file)));
-  };
-
-  const handleRemoveExistingFile = (publicId) => {
-    setRemovedFiles((current) => [...new Set([...current, publicId])]);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrors({});
-
-    const today = new Date().toISOString().split('T')[0];
-    if (formData.purchaseDate > today) {
-      setErrors({ purchaseDate: 'Purchase date cannot be in the future.' });
-      return;
-    }
-
-    if (parseInt(formData.warrantyValue, 10) <= 0) {
-      setErrors({ warrantyValue: 'Warranty period must be positive.' });
-      return;
-    }
-
-    setSubmitting(true);
-    const payload = new FormData();
-    payload.append('productName', formData.productName);
-    payload.append('brand', formData.brand);
-    payload.append('model', formData.model);
-    payload.append('serialNumber', formData.serialNumber);
-    payload.append('purchaseDate', formData.purchaseDate);
-    payload.append('warrantyValue', formData.warrantyValue);
-    payload.append('warrantyUnit', formData.warrantyUnit);
-    payload.append('shopName', formData.shopName);
-    payload.append('price', formData.price);
-    payload.append('notes', formData.notes);
-
-    if (isEditMode && removedFiles.length > 0) {
-      payload.append('removedFiles', removedFiles.join(','));
-    }
-
-    newFiles.forEach((file) => {
-      payload.append('files', file);
-    });
-
-    try {
-      if (isEditMode) {
-        await api.put(`/warranties/${id}`, payload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          onUploadProgress: (progressEvent) => {
-            const percent = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-            setUploadProgress(percent);
-          },
-        });
-        showToast('Warranty updated successfully', 'success');
-        navigate(`/warranties/${id}`);
-      } else {
-        const res = await api.post('/warranties', payload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          onUploadProgress: (progressEvent) => {
-            const percent = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-            setUploadProgress(percent);
-          },
-        });
-        showToast('Warranty created successfully', 'success');
-        navigate(`/warranties/${res.data.data._id}`);
-      }
-    } catch (err) {
-      const data = err.response?.data;
-      if (data?.errors) {
-        const errMap = {};
-        data.errors.forEach((e) => {
-          errMap[e.field] = e.message;
-        });
-        setErrors(errMap);
-      } else {
-        showToast(data?.message || 'Error saving warranty', 'error');
-      }
-    } finally {
-      setSubmitting(false);
-      setUploadProgress(0);
-    }
-  };
-
+  const validate = (names) => { const next = {}; names.forEach((name) => { if (name === 'productName' && !formData.productName.trim()) next.productName = 'Enter a product name.'; if (name === 'purchaseDate' && !formData.purchaseDate) next.purchaseDate = 'Choose the purchase date.'; if (name === 'purchaseDate' && formData.purchaseDate > today()) next.purchaseDate = 'Purchase date cannot be in the future.'; if (name === 'warrantyValue' && (!Number.isInteger(Number(formData.warrantyValue)) || Number(formData.warrantyValue) < 1)) next.warrantyValue = 'Enter a valid warranty period.'; }); setErrors((current) => ({ ...current, ...next })); return Object.keys(next).length === 0; };
+  const validateStep = () => step === 0 ? validate(['productName']) : step === 1 ? validate(['purchaseDate', 'warrantyValue']) : true;
+  const handleChange = (event) => { const { name, value } = event.target; setFormData((current) => ({ ...current, [name]: value })); if (errors[name]) setErrors((current) => ({ ...current, [name]: undefined })); };
+  const selectPeriod = (value, unit) => setFormData((current) => ({ ...current, warrantyValue: value, warrantyUnit: unit }));
+  const addFiles = (files) => { const selected = Array.from(files || []); const capacity = 3 - (existingFiles.length - removedFiles.length); if (selected.length > capacity) return showToast(`You can upload ${capacity} more file${capacity === 1 ? '' : 's'} (maximum 3).`, 'error'); for (const file of selected) { const extension = file.name.split('.').pop()?.toLowerCase(); if (file.size > 5 * 1024 * 1024 || !['jpg', 'jpeg', 'png', 'pdf'].includes(extension)) return showToast(`${file.name} must be a JPG, PNG, or PDF under 5 MB.`, 'error'); } setNewFiles(selected); };
+  const submit = async (event) => { event.preventDefault(); if (!validate(['productName', 'purchaseDate', 'warrantyValue'])) { setStep(!formData.productName.trim() ? 0 : 1); return; } setSubmitting(true); const payload = new FormData(); Object.entries(formData).forEach(([key, value]) => payload.append(key, value)); if (isEditMode && removedFiles.length) payload.append('removedFiles', removedFiles.join(',')); newFiles.forEach((file) => payload.append('files', file)); const options = { headers: { 'Content-Type': 'multipart/form-data' }, onUploadProgress: (event) => setUploadProgress(Math.round((event.loaded * 100) / (event.total || 1))) }; try { if (isEditMode) { await api.put(`/warranties/${id}`, payload, options); showToast('Warranty updated successfully', 'success'); navigate(`/warranties/${id}`); } else { const res = await api.post('/warranties', payload, options); showToast('Warranty created successfully', 'success'); navigate(`/warranties/${res.data.data._id}`); } } catch (err) { const serverErrors = err.response?.data?.errors; if (serverErrors) setErrors(Object.fromEntries(serverErrors.map((item) => [item.field, item.message]))); else showToast(err.response?.data?.message || 'Error saving warranty', 'error'); } finally { setSubmitting(false); setUploadProgress(0); } };
   if (loading) return <Spinner />;
-
-  return (
-    <div className="container page-narrow">
-      <div className="back-link">
-        <Link to="/dashboard">&larr; Cancel and return</Link>
-      </div>
-
-      <Card>
-        <h1 className="card-heading">{isEditMode ? 'Edit Warranty' : 'Add New Warranty'}</h1>
-
-        <form onSubmit={handleSubmit}>
-          <FormField label="Product Name *" htmlFor="productName" error={errors.productName}>
-            <Input
-              type="text"
-              id="productName"
-              name="productName"
-              required
-              value={formData.productName}
-              onChange={handleChange}
-              placeholder="e.g. MacBook Pro 16 or Sony TV"
-            />
-          </FormField>
-
-          <div className="form-grid">
-            <FormField label="Brand" htmlFor="brand">
-              <Input
-                type="text"
-                id="brand"
-                name="brand"
-                value={formData.brand}
-                onChange={handleChange}
-                placeholder="e.g. Apple, LG"
-              />
-            </FormField>
-            <FormField label="Model" htmlFor="model">
-              <Input
-                type="text"
-                id="model"
-                name="model"
-                value={formData.model}
-                onChange={handleChange}
-                placeholder="e.g. OLED55C2PUA"
-              />
-            </FormField>
-          </div>
-
-          <div className="form-grid">
-            <FormField label="Purchase Date *" htmlFor="purchaseDate" error={errors.purchaseDate}>
-              <Input
-                type="date"
-                id="purchaseDate"
-                name="purchaseDate"
-                required
-                max={new Date().toISOString().split('T')[0]}
-                value={formData.purchaseDate}
-                onChange={handleChange}
-              />
-            </FormField>
-
-            <FormField label="Warranty Period *" htmlFor="warrantyValue" error={errors.warrantyValue}>
-              <div className="form-inline">
-                <Input
-                  id="warrantyValue"
-                  type="number"
-                  name="warrantyValue"
-                  min="1"
-                  required
-                  value={formData.warrantyValue}
-                  onChange={handleChange}
-                />
-                <Select
-                  name="warrantyUnit"
-                  value={formData.warrantyUnit}
-                  onChange={handleChange}
-                  aria-label="Warranty period unit"
-                >
-                  <option value="months">Month(s)</option>
-                  <option value="years">Year(s)</option>
-                </Select>
-              </div>
-            </FormField>
-          </div>
-
-          <div className="form-grid">
-            <FormField label="Serial Number" htmlFor="serialNumber">
-              <Input
-                type="text"
-                id="serialNumber"
-                name="serialNumber"
-                value={formData.serialNumber}
-                onChange={handleChange}
-                placeholder="SN-12345678"
-              />
-            </FormField>
-            <FormField label="Shop / Merchant Name" htmlFor="shopName">
-              <Input
-                type="text"
-                id="shopName"
-                name="shopName"
-                value={formData.shopName}
-                onChange={handleChange}
-                placeholder="e.g. Amazon, Local Store"
-              />
-            </FormField>
-          </div>
-
-          <FormField label="Purchase Price ($)" htmlFor="price">
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              id="price"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              placeholder="0.00"
-            />
-          </FormField>
-
-          <FormField label="Notes" htmlFor="notes">
-            <Textarea
-              id="notes"
-              name="notes"
-              rows="3"
-              value={formData.notes}
-              onChange={handleChange}
-              placeholder="Additional terms, extended coverages, claim phone numbers..."
-            />
-          </FormField>
-
-          {isEditMode && existingFiles.length > 0 && (
-            <section className="existing-files">
-              <h2 className="field-label">Current Files</h2>
-              <div className="existing-file-list">
-                {existingFiles.map((file) => {
-                  const fileIdentifier = file.publicId || file._id;
-                  const isMarked = removedFiles.includes(fileIdentifier);
-                  return (
-                    <div
-                      key={fileIdentifier}
-                      className={`file-row${isMarked ? ' file-row-removed' : ''}`}
-                    >
-                      <span className="file-name">{file.originalName}</span>
-                      {!isMarked ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="small"
-                          className="button-danger-text"
-                          onClick={() => handleRemoveExistingFile(fileIdentifier)}
-                        >
-                          Remove
-                        </Button>
-                      ) : (
-                        <span className="file-remove-label">Marked for deletion</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {previewUrls.length > 0 && (
-            <section className="new-file-preview">
-              <h2 className="field-label">Selected image previews</h2>
-              <div className="file-preview-grid">
-                {previewUrls.map((url, index) => (
-                  <img key={`${url}-${index}`} src={url} alt={`Preview ${index + 1}`} className="preview-image" />
-                ))}
-              </div>
-            </section>
-          )}
-
-          <FormField label="Upload Bills / Warranty Cards (Max 3 files, JPG/PNG/PDF, ≤ 5MB each)" htmlFor="file-input">
-            <Input
-              type="file"
-              id="file-input"
-              multiple
-              accept=".jpg,.jpeg,.png,.pdf"
-              className="file-input"
-              onChange={handleFileChange}
-            />
-          </FormField>
-
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="upload-progress" aria-live="polite">
-              <span>Uploading files: {uploadProgress}%</span>
-              <div className="progress-bar">
-                <span style={{ width: `${uploadProgress}%` }} />
-              </div>
-            </div>
-          )}
-
-          <div className="form-actions">
-            <Link to="/dashboard" className="button button-secondary">
-              Cancel
-            </Link>
-            <Button type="submit" loading={submitting}>
-              {submitting ? (uploadProgress > 0 ? `Saving... ${uploadProgress}%` : 'Saving...') : isEditMode ? 'Update Warranty' : 'Save Warranty'}
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </div>
-  );
+  return <div className="container page-narrow warranty-form-page"><nav className="breadcrumbs" aria-label="Breadcrumb"><Link to="/dashboard">Dashboard</Link><span aria-hidden="true">/</span><span aria-current="page">{isEditMode ? 'Edit warranty' : 'Add warranty'}</span></nav><header className="form-page-header"><div><p className="eyebrow">{isEditMode ? 'Keep coverage accurate' : 'Start tracking coverage'}</p><h1>{isEditMode ? 'Edit warranty' : 'Add a warranty'}</h1><p className="page-description">{isEditMode ? 'Update the details and documents for this item.' : 'A few details now can save a lot of searching later.'}</p></div><Link to="/dashboard" className="text-button">Cancel</Link></header>
+    <ol className="form-steps" aria-label="Form steps">{steps.map((label, index) => <li key={label} className={index === step ? 'current' : index < step ? 'complete' : ''}><span>{index < step ? '✓' : index + 1}</span>{label}</li>)}</ol>
+    <Card className="warranty-form-card"><form onSubmit={submit}>
+      {step === 0 && <section className="form-step" aria-labelledby="product-step-title"><div><h2 id="product-step-title">What did you buy?</h2><p>Start with the product’s name. Other details are optional.</p></div><FormField label="Product name *" htmlFor="productName" error={errors.productName}><Input id="productName" name="productName" required value={formData.productName} onChange={handleChange} onBlur={() => validate(['productName'])} placeholder="e.g. MacBook Pro 16 or Sony TV" autoFocus /></FormField><div className="form-grid"><FormField label="Brand" htmlFor="brand"><Input id="brand" name="brand" value={formData.brand} onChange={handleChange} placeholder="e.g. Apple, LG" /></FormField><FormField label="Model" htmlFor="model"><Input id="model" name="model" value={formData.model} onChange={handleChange} placeholder="e.g. OLED55C2PUA" /></FormField></div><button className="details-toggle" type="button" aria-expanded={showDetails} onClick={() => setShowDetails(!showDetails)}>Optional details <span aria-hidden="true">{showDetails ? '−' : '+'}</span></button>{showDetails && <div className="optional-details"><div className="form-grid"><FormField label="Serial number" htmlFor="serialNumber"><Input id="serialNumber" name="serialNumber" value={formData.serialNumber} onChange={handleChange} placeholder="SN-12345678" /></FormField><FormField label="Shop or merchant" htmlFor="shopName"><Input id="shopName" name="shopName" value={formData.shopName} onChange={handleChange} placeholder="e.g. Amazon, local store" /></FormField></div><FormField label="Purchase price" htmlFor="price"><div className="price-input"><span aria-hidden="true">₹</span><Input id="price" name="price" type="number" step="0.01" min="0" value={formData.price} onChange={handleChange} placeholder="0" /></div></FormField><FormField label="Notes" htmlFor="notes"><Textarea id="notes" name="notes" rows="3" value={formData.notes} onChange={handleChange} placeholder="Claim contacts, terms, or anything useful later…" /></FormField></div>}</section>}
+      {step === 1 && <section className="form-step" aria-labelledby="warranty-step-title"><div><h2 id="warranty-step-title">When does coverage end?</h2><p>We’ll calculate the expiry date for you.</p></div><FormField label="Purchase date *" htmlFor="purchaseDate" error={errors.purchaseDate}><Input id="purchaseDate" name="purchaseDate" type="date" max={today()} required value={formData.purchaseDate} onChange={handleChange} onBlur={() => validate(['purchaseDate'])} /></FormField><FormField label="Warranty period *" htmlFor="warrantyValue" error={errors.warrantyValue}><div className="form-inline"><Input id="warrantyValue" name="warrantyValue" type="number" min="1" required value={formData.warrantyValue} onChange={handleChange} onBlur={() => validate(['warrantyValue'])} /><Select name="warrantyUnit" value={formData.warrantyUnit} onChange={handleChange} aria-label="Warranty period unit"><option value="months">Months</option><option value="years">Years</option></Select></div></FormField><div className="period-chips" aria-label="Quick warranty periods">{[[6, 'months', '6 months'], [12, 'months', '1 year'], [2, 'years', '2 years'], [3, 'years', '3 years']].map(([value, unit, label]) => <button type="button" key={label} className={Number(formData.warrantyValue) === value && formData.warrantyUnit === unit ? 'selected' : ''} onClick={() => selectPeriod(value, unit)}>{label}</button>)}</div>{expiryPreview && <aside className="expiry-preview"><span>Estimated expiry</span><strong>{dateLabel(expiryPreview)}</strong><small>Based on your purchase date and selected period.</small></aside>}</section>}
+      {step === 2 && <section className="form-step" aria-labelledby="bills-step-title"><div><h2 id="bills-step-title">Add bills and warranty cards</h2><p>Optional, but helpful when it’s time to make a claim.</p></div><input ref={fileInputRef} id="file-input" className="visually-hidden" type="file" multiple accept=".jpg,.jpeg,.png,.pdf" onChange={(event) => addFiles(event.target.files)} /><div className={`upload-dropzone${isDragging ? ' dragging' : ''}`} role="button" tabIndex="0" aria-label="Upload bills or warranty cards" onClick={() => fileInputRef.current?.click()} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInputRef.current?.click(); } }} onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={(event) => { event.preventDefault(); setIsDragging(false); addFiles(event.dataTransfer.files); }}><span className="upload-icon" aria-hidden="true">↑</span><strong>Drop files here or browse</strong><span>JPG, PNG, or PDF · up to 5 MB each · maximum 3 files</span></div><div className="upload-actions"><Button type="button" variant="secondary" size="small" onClick={() => fileInputRef.current?.click()}>Choose files</Button><label className="button button-ghost button-small camera-button"><input type="file" accept="image/*" capture="environment" onChange={(event) => addFiles(event.target.files)} />Use camera</label><Button type="button" variant="secondary" size="small" disabled>Scan bill to auto-fill (coming soon)</Button></div>{isEditMode && existingFiles.length > 0 && <div className="uploaded-files"><h3>Current files</h3>{existingFiles.map((file) => { const fileId = file.publicId || file._id; const removed = removedFiles.includes(fileId); return <div className={`file-row${removed ? ' file-row-removed' : ''}`} key={fileId}><span className="file-name">{file.originalName}</span>{removed ? <span className="file-remove-label">Marked for deletion</span> : <Button type="button" variant="ghost" size="small" className="button-danger-text" onClick={() => setRemovedFiles((current) => [...new Set([...current, fileId])])}>Remove</Button>}</div>; })}</div>}{previewFiles.length > 0 && <div className="file-preview-grid">{previewFiles.map(({ file, url }, index) => <div className="file-preview" key={`${file.name}-${index}`}>{url ? <img src={url} alt={`Preview of ${file.name}`} /> : <span className="pdf-preview">PDF</span>}<span>{file.name}</span><button type="button" aria-label={`Remove ${file.name}`} onClick={() => setNewFiles((current) => current.filter((_, currentIndex) => currentIndex !== index))}>×</button></div>)}</div>}{uploadProgress > 0 && uploadProgress < 100 && <div className="upload-progress" aria-live="polite"><span>Uploading files: {uploadProgress}%</span><ProgressBar value={uploadProgress} /></div>}</section>}
+      <div className="form-actions form-step-actions">{step > 0 ? <Button type="button" variant="secondary" onClick={() => setStep(step - 1)}>Back</Button> : <Link to="/dashboard" className="button button-secondary">Cancel</Link>}{step < 2 ? <Button type="button" onClick={() => { if (validateStep()) setStep(step + 1); }}>Continue</Button> : <Button type="submit" loading={submitting}>{submitting ? (uploadProgress ? `Saving… ${uploadProgress}%` : 'Saving…') : isEditMode ? 'Save changes' : 'Save warranty'}</Button>}</div>
+    </form></Card>
+    <div className="mobile-form-actions">{step > 0 && <Button type="button" variant="secondary" onClick={() => setStep(step - 1)}>Back</Button>}{step < 2 ? <Button type="button" onClick={() => { if (validateStep()) setStep(step + 1); }}>Continue</Button> : <Button type="button" loading={submitting} onClick={() => document.querySelector('.warranty-form-card form')?.requestSubmit()}>{isEditMode ? 'Save changes' : 'Save warranty'}</Button>}</div>
+  </div>;
 };
-
 export default WarrantyForm;
