@@ -44,6 +44,8 @@ router.post(
   authController.login
 );
 
+router.post('/google', authLimiter, authController.google);
+
 router.get('/me', authenticate, authController.getCurrentUser);
 
 module.exports = router;

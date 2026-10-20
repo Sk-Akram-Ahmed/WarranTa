@@ -19,7 +19,18 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: [true, 'Password hash is required'],
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    avatarUrl: {
+      type: String,
+    },
+    authProviders: {
+      type: [String],
+      default: ['password'],
     },
     acceptedTermsAt: {
       type: Date,

@@ -1,6 +1,9 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+
+const googleClient = new OAuth2Client();
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
@@ -62,7 +65,7 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    const match = await bcrypt.compare(password, user.passwordHash);
+    const match = user.passwordHash && await bcrypt.compare(password, user.passwordHash);
     if (!match) {
       return res.status(401).json({
         success: false,
@@ -78,6 +81,57 @@ exports.login = async (req, res, next) => {
       token,
       user,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.google = async (req, res, next) => {
+  const { credential } = req.body;
+  if (typeof credential !== 'string' || !credential.trim()) {
+    return res.status(401).json({ success: false, message: 'Invalid Google credential.' });
+  }
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    return res.status(401).json({ success: false, message: 'Invalid Google credential.' });
+  }
+
+  if (!payload?.sub || !payload?.email || payload.email_verified !== true) {
+    return res.status(401).json({ success: false, message: 'Invalid Google credential.' });
+  }
+
+  try {
+    const email = payload.email.toLowerCase();
+    let user = await User.findOne({ googleId: payload.sub });
+    if (!user) {
+      user = await User.findOne({ email });
+      if (user) {
+        user.googleId = payload.sub;
+        if (!user.authProviders) user.authProviders = [];
+        if (!user.authProviders.includes('google')) user.authProviders.push('google');
+        if (!user.avatarUrl) user.avatarUrl = payload.picture;
+        await user.save();
+      } else {
+        user = await User.create({
+          name: payload.name || email,
+          email,
+          googleId: payload.sub,
+          avatarUrl: payload.picture,
+          authProviders: ['google'],
+          acceptedTermsAt: new Date(),
+        });
+      }
+    }
+
+    const token = generateToken(user._id);
+    res.status(200).json({ success: true, message: 'Logged in successfully', token, user });
   } catch (error) {
     next(error);
   }
