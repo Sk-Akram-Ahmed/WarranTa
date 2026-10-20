@@ -1,0 +1,10 @@
+.google-button { display: grid; gap: 10px; width: 100%; }
+.google-button__official { min-height: 40px; }
+.google-button__official--loading { pointer-events: none; opacity: .6; }
+.google-button__loading { color: var(--text-muted); font-size: var(--font-size-sm); text-align: center; }
+.google-button__error { border: 1px solid var(--status-expired-text); border-radius: var(--radius-control); padding: var(--space-3); background: var(--status-expired-bg); color: var(--status-expired-text); font-size: var(--font-size-sm); }
+.google-button__terms { margin: 0; color: var(--text-muted); font-size: var(--font-size-xs); line-height: 1.5; text-align: center; }
+.google-button__terms a { color: var(--primary-text); }
+.google-button__divider { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-4) 0; color: var(--text-muted); font-size: var(--font-size-xs); text-align: center; }
+.google-button__divider::before, .google-button__divider::after { height: 1px; flex: 1; background: var(--border); content: ''; }
+@media (prefers-reduced-motion: reduce) { .google-button * { transition: none !important; } }

@@ -30,3 +30,5 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+export const googleLogin = (credential, mode, acceptedTerms) => api.post('/auth/google', { credential, mode, acceptedTerms });

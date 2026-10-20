@@ -87,7 +87,7 @@ exports.login = async (req, res, next) => {
 };
 
 exports.google = async (req, res, next) => {
-  const { credential } = req.body;
+  const { credential, mode = 'login', acceptedTerms } = req.body;
   if (typeof credential !== 'string' || !credential.trim()) {
     return res.status(401).json({ success: false, message: 'Invalid Google credential.' });
   }
@@ -112,26 +112,42 @@ exports.google = async (req, res, next) => {
     let user = await User.findOne({ googleId: payload.sub });
     if (!user) {
       user = await User.findOne({ email });
-      if (user) {
+    }
+
+    if (mode === 'login') {
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          code: 'ACCOUNT_NOT_FOUND',
+          message: 'No account found for this Google email. Please sign up first.',
+          profile: { name: payload.name, email, picture: payload.picture },
+        });
+      }
+      if (user.googleId !== payload.sub) {
         user.googleId = payload.sub;
         if (!user.authProviders) user.authProviders = [];
         if (!user.authProviders.includes('google')) user.authProviders.push('google');
         if (!user.avatarUrl) user.avatarUrl = payload.picture;
         await user.save();
-      } else {
-        user = await User.create({
-          name: payload.name || email,
-          email,
-          googleId: payload.sub,
-          avatarUrl: payload.picture,
-          authProviders: ['google'],
-          acceptedTermsAt: new Date(),
-        });
       }
+      const token = generateToken(user._id);
+      return res.status(200).json({ success: true, message: 'Logged in successfully', token, user, isNewUser: false });
     }
 
+    if (mode !== 'signup') return res.status(401).json({ success: false, message: 'Invalid Google credential.' });
+    if (user) return res.status(409).json({ success: false, code: 'ACCOUNT_EXISTS', message: 'You already have an account. Please sign in.' });
+    if (acceptedTerms !== true) return res.status(400).json({ success: false, message: 'You must accept the Terms and Privacy Policy' });
+
+    user = await User.create({
+      name: payload.name || email,
+      email,
+      googleId: payload.sub,
+      avatarUrl: payload.picture,
+      authProviders: ['google'],
+      acceptedTermsAt: new Date(),
+    });
     const token = generateToken(user._id);
-    res.status(200).json({ success: true, message: 'Logged in successfully', token, user });
+    res.status(200).json({ success: true, message: 'Logged in successfully', token, user, isNewUser: true });
   } catch (error) {
     next(error);
   }
