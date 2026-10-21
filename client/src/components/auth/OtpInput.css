@@ -1,0 +1,76 @@
+.otp-registration-wrap { width: min(100%, 420px); margin-inline: auto; padding-top: 12px; }
+.otp-registration-wrap > .eyebrow, .otp-registration-wrap > h1, .otp-registration-wrap > .auth-subtitle, .otp-registration-wrap > .google-button, .otp-registration-wrap > .google-button__divider, .otp-registration-wrap > .form-alert, .otp-registration-wrap > .otp-registration, .otp-registration-wrap > .auth-footer { position: relative; z-index: 1; }
+.otp-registration-wrap:not(:has(.otp-registration__passwords)) { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 16px; padding: 32px; background: var(--surface); box-shadow: 0 1px 2px rgb(32 15 7 / 6%), 0 12px 32px rgb(32 15 7 / 10%); }
+.otp-registration-wrap:not(:has(.otp-registration__passwords))::before { position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--primary), #F9B48D); content: ''; }
+.otp-registration { display: grid; gap: 20px; margin-top: 20px; }
+.otp-registration__field { gap: 6px; margin: 0; }
+.otp-registration__field .input, .otp-registration__email-control .input { min-height: 52px; border-radius: 12px; background: var(--surface-alt); }
+.otp-registration__field .input:focus, .otp-registration__email-control .input:focus { border-color: var(--primary); outline: 0; background: var(--surface); box-shadow: 0 0 0 2px rgb(247 115 49 / 25%), 0 3px 12px rgb(247 115 49 / 12%); }
+.otp-registration__field .field-hint, .otp-registration__field .field-error { margin-top: 8px; }
+.otp-registration__email-row { display: flex; align-items: end; gap: 8px; }
+.otp-registration__email-row:has(.input[readonly]) { display: block; }
+.otp-registration__email-row:has(.input[readonly]) .otp-registration__send { display: none; }
+.otp-registration__email-row .form-field { flex: 1; min-width: 0; }
+.otp-registration__email-control { position: relative; }
+.otp-registration__email-control .input[readonly] { background: var(--surface-alt); color: var(--text-muted); }
+.otp-registration__email-control--verified .input { border-color: var(--status-active-text); padding-right: 48px; }
+.otp-registration__email-check { position: absolute; top: 50%; right: 14px; display: grid; width: 20px; height: 20px; place-items: center; color: var(--status-active-text); transform: translateY(-50%); }
+.otp-registration__email-check svg { width: 18px; height: 18px; }
+.otp-registration__send { min-width: 108px; min-height: 52px; border-radius: 12px; white-space: nowrap; }
+.otp-registration__info { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; border-radius: 12px; padding: 8px 10px; background: var(--surface-alt); color: var(--text-muted); font-size: var(--font-size-xs); line-height: 1.45; }
+.otp-registration__section, .otp-registration__passwords { display: grid; gap: 20px; animation: otp-registration-reveal 200ms ease-out both; }
+.otp-registration__section { padding-top: 0; }
+.otp-registration__otp-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--text-muted); font-size: var(--font-size-sm); }
+.otp-registration__otp-heading label { color: var(--text); font-weight: var(--font-weight-medium); }
+.otp-input { display: flex; gap: 8px; max-width: 100%; }
+.otp-input-form { display: grid; gap: 16px; }
+.otp-input__continue { min-height: 52px; border: 0; border-radius: 12px; background: var(--primary); color: var(--on-primary); font: inherit; font-weight: var(--font-weight-semibold); }
+.otp-input__continue:disabled { cursor: not-allowed; opacity: .6; }
+.otp-input__box { width: 52px; height: 60px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-alt); color: var(--text); font-size: 24px; font-weight: 600; text-align: center; }
+.otp-input__box:not(:placeholder-shown) { border-color: var(--primary); background: var(--surface-alt); }
+.otp-input__box:focus-visible { border-color: var(--primary); outline: 0; box-shadow: 0 0 0 3px rgb(247 115 49 / 28%); }
+.otp-input--success .otp-input__box { border-color: var(--status-active); background: var(--status-active-bg); }
+.otp-registration__meta { color: var(--text-muted); font-size: var(--font-size-sm); }
+.otp-registration__otp-actions, .otp-registration__verified-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.otp-registration__change, .otp-registration__resend { min-height: 32px; border: 0; padding: 0; background: transparent; color: var(--primary-text); font: inherit; font-size: var(--font-size-sm); text-decoration: underline; }
+.otp-registration__change:hover, .otp-registration__resend:hover, .otp-registration__terms a:hover { text-decoration: underline; }
+.otp-registration__error { display: flex; align-items: flex-start; gap: 6px; border: 1px solid var(--status-expired-text); border-radius: 12px; padding: 8px 10px; background: var(--status-expired-bg); color: var(--status-expired-text); font-size: var(--font-size-sm); }
+.otp-registration__error > span { display: grid; width: 16px; height: 16px; flex: 0 0 auto; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-size: 11px; font-weight: 700; }
+.otp-registration__verified { display: inline-flex; align-items: center; gap: 6px; color: var(--status-active-text); font-size: var(--font-size-sm); font-weight: 600; }
+.otp-registration__verified svg { width: 18px; height: 18px; }
+.otp-registration__passwords { padding-top: 4px; }
+.otp-registration-wrap:has(.otp-registration__passwords) { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 16px; padding: 32px; background: var(--surface); box-shadow: 0 1px 2px rgb(32 15 7 / 6%), 0 12px 32px rgb(32 15 7 / 10%); }
+.otp-registration-wrap:has(.otp-registration__passwords)::before { position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--primary), #F9B48D); content: ''; }
+.otp-registration-wrap:has(.otp-registration__passwords) > .eyebrow, .otp-registration-wrap:has(.otp-registration__passwords) > h1, .otp-registration-wrap:has(.otp-registration__passwords) > .auth-subtitle, .otp-registration-wrap:has(.otp-registration__passwords) > .google-button, .otp-registration-wrap:has(.otp-registration__passwords) > .google-button__divider, .otp-registration-wrap:has(.otp-registration__passwords) .otp-registration > .otp-registration__field:first-child, .otp-registration-wrap:has(.otp-registration__passwords) .otp-registration__email-row, .otp-registration-wrap:has(.otp-registration__passwords) .otp-registration__section { display: none; }
+.otp-registration-wrap:has(.otp-registration__passwords) .otp-registration__passwords::before { display: block; margin-bottom: 20px; color: var(--text); font-size: 24px; font-weight: 600; content: 'Create your password'; }
+.otp-registration__password-control { position: relative; }
+.otp-registration__password-control .input { padding-right: 56px; }
+.otp-registration input:-webkit-autofill, .otp-registration input:-webkit-autofill:hover, .otp-registration input:-webkit-autofill:focus { -webkit-text-fill-color: var(--text); -webkit-box-shadow: 0 0 0 1000px var(--surface-alt) inset; }
+.otp-registration__password-control button { position: absolute; top: 50%; right: 8px; display: grid; width: 44px; height: 44px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--text-muted); transform: translateY(-50%); }
+.otp-registration__password-control button svg { width: 20px; height: 20px; }
+.otp-registration__password-control button:hover, .otp-registration__password-control button:focus-visible { color: var(--text); }
+.otp-registration__password-control button:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+.otp-registration__strength { display: grid; gap: 6px; margin-top: -14px; font-size: var(--font-size-sm); }
+.otp-registration__strength-title { display: flex; justify-content: space-between; gap: 12px; color: var(--text-muted); }
+.otp-registration__strength-title strong { color: var(--text); }
+.otp-registration__segments { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.otp-registration__segments span { height: 4px; border-radius: 999px; background: var(--border); }
+.otp-registration__segments span[data-active='true'] { background: var(--primary); }
+.otp-registration__checklist { display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 6px 0; padding: 0; list-style: none; color: var(--text-muted); font-size: 12px; }
+.otp-registration__checklist li { display: inline-flex; align-items: center; gap: 4px; }
+.otp-registration__checklist li > span { color: var(--text-muted); font-size: 14px; }
+.otp-registration__checklist li[data-met='true'], .otp-registration__checklist li[data-met='true'] > span { color: var(--status-active-text); }
+.otp-registration__match { display: inline-flex; align-items: center; gap: 5px; margin-top: -14px; font-size: var(--font-size-xs); }
+.otp-registration__match[data-match='false'] { color: var(--status-expired-text); }
+.otp-registration__match[data-match='true'] { color: var(--status-active-text); }
+.otp-registration__terms { min-height: 44px; align-items: center; margin: 0; font-size: 14px; }
+.otp-registration__terms input { width: 20px; height: 20px; margin: 0; }
+.otp-registration__terms a { color: var(--primary-text); }
+.otp-registration .button-full { min-height: 48px; }
+.otp-registration .button-full:disabled { cursor: not-allowed; opacity: 0.55; }
+.otp-registration__submit-helper { color: var(--text-muted); font-size: var(--font-size-xs); line-height: 1.45; text-align: center; }
+.otp-input--shake { animation: otp-input-shake 300ms ease-in-out; }
+@keyframes otp-registration-reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes otp-input-shake { 25%, 75% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }
+@media (max-width: 480px) { .otp-registration-wrap, .otp-registration-wrap:has(.otp-registration__passwords) { padding: 24px; }.otp-registration__email-row { align-items: stretch; flex-direction: column; }.otp-registration__send { width: 100%; }.otp-input { justify-content: space-between; gap: 6px; }.otp-input__box { width: min(52px, calc((100vw - 96px) / 6)); }.otp-registration__otp-heading, .otp-registration__otp-actions, .otp-registration__verified-row { align-items: flex-start; flex-direction: column; } }
+@media (prefers-reduced-motion: reduce) { .otp-registration__section, .otp-registration__passwords, .otp-input--shake { animation: none; } }

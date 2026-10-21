@@ -14,7 +14,6 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
-      index: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
     },
     passwordHash: {
@@ -32,8 +31,20 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: ['password'],
     },
-    acceptedTermsAt: {
+    termsVersion: {
+      type: String,
+    },
+    termsAcceptedAt: {
       type: Date,
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    accountStatus: {
+      type: String,
+      enum: ['active', 'disabled'],
+      default: 'active',
     },
   },
   {

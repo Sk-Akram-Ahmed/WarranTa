@@ -1,22 +1,98 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import api from '../api/axiosInstance';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import CardStack from '../components/auth/CardStack';
 import GoogleButton from '../components/auth/GoogleButton';
+import GoogleFinishCard from '../components/auth/GoogleFinishCard';
 import './Login.css';
 
 const CheckIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>;
 const EyeIcon = ({ open }) => open ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" /><path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c5.5 0 9.2 5.1 9.8 6-.3.5-1.4 2-3.1 3.4M6.2 6.2C4.3 7.6 3.2 9.5 2.2 10.9 3 12.1 6.5 16 12 16c.8 0 1.6-.1 2.3-.4" /></svg> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.2 12S5.7 5 12 5s9.8 7 9.8 7-3.5 7-9.8 7S2.2 12 2.2 12Z" /><circle cx="12" cy="12" r="3" /></svg>;
+const isEmail = (value) => /^\S+@\S+\.\S+$/.test(value);
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' }); const [fieldErrors, setFieldErrors] = useState({}); const [formError, setFormError] = useState(''); const [showPassword, setShowPassword] = useState(false); const [capsLockOn, setCapsLockOn] = useState(false); const [loading, setLoading] = useState(false); const [success, setSuccess] = useState(false); const [shake, setShake] = useState(false);
-  const redirectTimerRef = useRef(null); const { login } = useAuth(); const { showToast } = useToast(); const navigate = useNavigate();
-  useEffect(() => () => { clearTimeout(redirectTimerRef.current); }, []);
-  const validateField = (name, value) => { let message = ''; if (!value.trim()) message = name === 'email' ? 'Enter your email address.' : 'Enter your password.'; if (name === 'email' && value && !/^\S+@\S+\.\S+$/.test(value)) message = 'Enter a valid email address.'; setFieldErrors((current) => ({ ...current, [name]: message })); return !message; };
-  const handleChange = (event) => { const { name, value } = event.target; setFormData((current) => ({ ...current, [name]: value })); if (fieldErrors[name]) validateField(name, value); if (formError) setFormError(''); };
-  const handleSubmit = async (event) => { event.preventDefault(); if (loading || success) return; const emailValid = validateField('email', formData.email); const passwordValid = validateField('password', formData.password); if (!emailValid || !passwordValid) return; setFormError(''); setLoading(true); try { const res = await api.post('/auth/login', formData); login(res.data.user, res.data.token); setSuccess(true); showToast('Logged in successfully', 'success'); redirectTimerRef.current = window.setTimeout(() => navigate('/dashboard'), 520); } catch { setFormError('Incorrect email or password'); setShake(false); window.requestAnimationFrame(() => setShake(true)); showToast('Incorrect email or password', 'error'); } finally { setLoading(false); } };
-  return <div className="login-page"><aside className="login-page__brand"><div className="login-page__brand-content"><Link to="/" className="login-page__logo" aria-label="Warranty Tracker home"><span>W</span> Warranty Tracker</Link><div className="login-page__intro"><p>Keep the important things covered</p><h1>Every warranty, exactly when you need it.</h1><p>Store the proof, watch the dates, and be ready when a claim matters.</p></div><ul className="login-page__benefits"><li><CheckIcon />Track expiry dates</li><li><CheckIcon />Store bills safely</li><li><CheckIcon />Get reminders before it ends</li></ul></div><CardStack variant="login" /></aside><main className="login-page__form-side"><div className={`login-page__form-card${shake ? ' login-page__form-card--shake' : ''}`} onAnimationEnd={() => setShake(false)}><Link className="login-page__back" to="/">← Back to home</Link><div className="login-page__form-heading"><h1>Welcome back</h1><p>Sign in to keep your warranties close at hand.</p></div><GoogleButton className="login-page__field" mode="login" onSuccess={({ user, token }) => { login(user, token); setSuccess(true); showToast("Welcome back!", "success"); redirectTimerRef.current = window.setTimeout(() => navigate("/dashboard"), 520); }} onAccountNotFound={(googleProfile, googleCredential) => { showToast("No account found. Please sign up first.", "error"); navigate("/register", { state: { googleProfile, googleCredential } }); }} /><div className="google-button__divider"><span>or continue with email</span></div>{formError && <div className="login-page__alert" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v6m0 4h.01" /></svg><span>{formError}</span></div>}<form onSubmit={handleSubmit} noValidate><div className="login-page__field"><label htmlFor="login-email">Email address</label><input id="login-email" name="email" type="email" inputMode="email" autoComplete="email" value={formData.email} onChange={handleChange} onBlur={(event) => validateField('email', event.target.value)} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? 'login-email-error' : undefined} placeholder="you@example.com" />{fieldErrors.email && <span id="login-email-error" className="login-page__field-error">{fieldErrors.email}</span>}</div><div className="login-page__field"><label htmlFor="login-password">Password</label><div className="login-page__password-wrap"><input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={formData.password} onChange={handleChange} onBlur={(event) => validateField('password', event.target.value)} onKeyUp={(event) => setCapsLockOn(event.getModifierState('CapsLock'))} onKeyDown={(event) => setCapsLockOn(event.getModifierState('CapsLock'))} aria-invalid={Boolean(fieldErrors.password)} aria-describedby={[fieldErrors.password ? 'login-password-error' : '', capsLockOn ? 'login-caps-lock' : ''].filter(Boolean).join(' ') || undefined} placeholder="Enter your password" /><button type="button" className="login-page__password-toggle" onClick={() => setShowPassword(!showPassword)} aria-pressed={showPassword} aria-label={showPassword ? 'Hide password' : 'Show password'}><EyeIcon open={showPassword} /></button></div>{fieldErrors.password && <span id="login-password-error" className="login-page__field-error">{fieldErrors.password}</span>}{capsLockOn && <span id="login-caps-lock" className="login-page__caps-lock">Caps Lock is on</span>}</div><div className="login-page__form-row"><label className="login-page__remember"><input type="checkbox" name="remember" /> <span>Remember me</span></label>{/* TODO: replace /contact with a dedicated password recovery route when available. */}<Link to="/contact">Forgot password?</Link></div><button className={`login-page__submit${success ? ' login-page__submit--success' : ''}`} type="submit" disabled={loading || success} aria-busy={loading}>{success ? <><CheckIcon />Signed in</> : loading ? <><span className="login-page__spinner" aria-hidden="true" />Signing in...</> : 'Sign in'}</button></form><div className="login-page__form-footer"><p>New here? <Link to="/register">Create an account</Link></p><div><Link to="/privacy">Privacy</Link><span>·</span><Link to="/terms">Terms</Link></div></div></div></main></div>;
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formError, setFormError] = useState('');
+  const [googleFlow, setGoogleFlow] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [shake, setShake] = useState(false);
+  const alertRef = useRef(null);
+  const redirectTimerRef = useRef(null);
+  const { login, user } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => () => clearTimeout(redirectTimerRef.current), []);
+  useEffect(() => {
+    if (formError) alertRef.current?.focus();
+  }, [formError]);
+
+  const validateEmail = (value) => {
+    let message = '';
+    if (!value.trim()) message = 'Enter your email address.';
+    else if (!isEmail(value)) message = 'Enter a valid email address.';
+    setFieldErrors((current) => ({ ...current, email: message }));
+    return !message;
+  };
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({ ...current, [name]: value }));
+    if (name === 'email' && fieldErrors.email) validateEmail(value);
+    if (formError) setFormError('');
+  };
+
+  const completeLogin = ({ user: authenticatedUser, token, isNewUser }) => {
+    login(authenticatedUser, token);
+    setSuccess(true);
+    showToast(isNewUser ? 'Welcome to Warranta! Your account is ready.' : 'Welcome back!', 'success');
+    redirectTimerRef.current = window.setTimeout(() => navigate('/dashboard'), 520);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (loading || success || !validateEmail(formData.email)) return;
+    setFormError('');
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/login', formData);
+      completeLogin(response.data);
+    } catch (requestError) {
+      setFormError(requestError.response?.data?.message || 'Unable to sign in with those details. Check your email and password and try again.');
+      setShake(false);
+      window.requestAnimationFrame(() => setShake(true));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (user) return <Navigate to="/dashboard" replace />;
+
+  const clearGoogleFlow = ({ message } = {}) => {
+    setGoogleFlow(null);
+    if (message) setFormError(message);
+  };
+  const content = googleFlow ? <GoogleFinishCard flow={googleFlow.type} ticket={googleFlow.ticket} profile={googleFlow.profile} maskedEmail={googleFlow.maskedEmail} onSuccess={completeLogin} onUseDifferentAccount={clearGoogleFlow} /> : <>
+    <div className="login-page__form-heading"><h1>Welcome back</h1><p></p></div>
+    <GoogleButton className="login-page__field" onSuccess={completeLogin} onNotFound={({ signupTicket, profile }) => setGoogleFlow({ type: 'signup', ticket: signupTicket, profile })} onLinkRequired={({ linkTicket, maskedEmail }) => setGoogleFlow({ type: 'link', ticket: linkTicket, maskedEmail })} />
+    <div className="google-button__divider"><span>or continue with email</span></div>
+    {formError && <div className="login-page__alert" ref={alertRef} role="alert" tabIndex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v6m0 4h.01" /></svg><span>{formError}</span></div>}
+    <form onSubmit={handleSubmit} noValidate>
+      <div className="login-page__field"><label htmlFor="login-email">Email address</label><input id="login-email" name="email" type="email" inputMode="email" autoComplete="email" value={formData.email} onChange={handleChange} onBlur={(event) => validateEmail(event.target.value)} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? 'login-email-error' : undefined} placeholder="you@example.com" />{fieldErrors.email && <span id="login-email-error" className="login-page__field-error">{fieldErrors.email}</span>}</div>
+      <div className="login-page__field"><label htmlFor="login-password">Password</label><div className="login-page__password-wrap"><input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={formData.password} onChange={handleChange} onKeyUp={(event) => setCapsLockOn(event.getModifierState('CapsLock'))} onKeyDown={(event) => setCapsLockOn(event.getModifierState('CapsLock'))} aria-describedby={capsLockOn ? 'login-caps-lock' : undefined} placeholder="Enter your password" /><button type="button" className="login-page__password-toggle" onClick={() => setShowPassword(!showPassword)} aria-pressed={showPassword} aria-label={showPassword ? 'Hide password' : 'Show password'}><EyeIcon open={showPassword} /></button></div>{capsLockOn && <span id="login-caps-lock" className="login-page__caps-lock">Caps Lock is on</span>}</div>
+      <div className="login-page__form-row"><Link to="/forgot-password">Forgot password?</Link></div>
+      <button className={`login-page__submit${success ? ' login-page__submit--success' : ''}`} type="submit" disabled={loading || success} aria-busy={loading}>{success ? <><CheckIcon />Signed in</> : loading ? <><span className="login-page__spinner" aria-hidden="true" />Signing in...</> : 'Sign in'}</button>
+    </form>
+    <div className="login-page__form-footer"><p>New here? <Link to="/register">Create an account</Link></p><div><Link to="/privacy">Privacy</Link><span>·</span><Link to="/terms">Terms</Link></div></div>
+  </>;
+
+  return <div className="login-page"><aside className="login-page__brand"><div className="login-page__brand-content"><Link to="/" className="login-page__logo" aria-label="Warranty Tracker home"><span>W</span> Warranty Tracker</Link><div className="login-page__intro"><p>Keep the important things covered</p><h1>Every warranty, exactly when you need it.</h1><p>Store the proof, watch the dates, and be ready when a claim matters.</p></div><ul className="login-page__benefits"><li><CheckIcon />Track expiry dates</li><li><CheckIcon />Store bills safely</li><li><CheckIcon />Get reminders before it ends</li></ul></div><CardStack variant="login" /></aside><main className="login-page__form-side"><div className={`login-page__form-card${shake ? ' login-page__form-card--shake' : ''}`} onAnimationEnd={() => setShake(false)}><Link className="login-page__back" to="/">← Back to home</Link>{content}</div></main></div>;
 };
+
 export default Login;

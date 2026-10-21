@@ -28,16 +28,17 @@ const sendEmail = async ({ to, subject, html, text }) => {
       return { success: true, messageId: info.messageId };
     } catch (err) {
       console.error('[Mailer Error] Failed to send email via SMTP:', err.message);
-      console.log(`[Simulated Email to ${to}] Subject: ${subject}\nBody: ${text}`);
       return { success: false, error: err.message };
     }
   } else {
-    console.log('----------------------------------------------------');
-    console.log(`[SIMULATED EMAIL DISPATCH]`);
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`Body:\n${text}`);
-    console.log('----------------------------------------------------');
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('----------------------------------------------------');
+      console.log(`[SIMULATED EMAIL DISPATCH]`);
+      console.log(`To: ${to}`);
+      console.log(`Subject: ${subject}`);
+      console.log(`Body:\n${text}`);
+      console.log('----------------------------------------------------');
+    }
     return { success: true, simulated: true };
   }
 };

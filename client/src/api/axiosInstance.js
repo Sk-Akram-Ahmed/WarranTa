@@ -18,7 +18,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
@@ -29,6 +29,12 @@ api.interceptors.response.use(
   }
 );
 
-export default api;
+export const googleLogin = (credential) => api.post('/auth/google', { credential });
+export const googleSignup = (signupTicket) => api.post('/auth/google/signup', { signupTicket, acceptedTerms: true });
+export const googleLink = (linkTicket, password) => api.post('/auth/google/link', { linkTicket, password });
+export const acceptTerms = () => api.post('/auth/accept-terms');
+export const registerStart = ({ name, email }) => api.post('/auth/register/start', { name, email });
+export const registerVerify = ({ email, code }) => api.post('/auth/register/verify', { email, code });
+export const registerComplete = ({ verifiedTicket, password, acceptedTerms }) => api.post('/auth/register/complete', { verifiedTicket, password, acceptedTerms });
 
-export const googleLogin = (credential, mode, acceptedTerms) => api.post('/auth/google', { credential, mode, acceptedTerms });
+export default api;

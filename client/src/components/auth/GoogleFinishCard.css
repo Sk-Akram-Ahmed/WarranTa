@@ -1,0 +1,183 @@
+.google-finish-card__wrap {
+  width: min(100%, 400px);
+  margin-top: 24px;
+  animation: google-finish-card-enter 300ms ease-out both;
+}
+
+.google-finish-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  background: var(--surface);
+  box-shadow: 0 12px 28px rgb(70 38 19 / 12%);
+  outline: 0;
+}
+
+.google-finish-card h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.google-finish-card > p {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.google-finish-card__profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.google-finish-card__profile img,
+.google-finish-card__profile > span {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.google-finish-card__profile > span {
+  display: grid;
+  place-items: center;
+  background: var(--surface-alt);
+  color: var(--primary-text);
+  font-weight: 600;
+}
+
+.google-finish-card__profile div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.google-finish-card__profile strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.google-finish-card__profile span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.google-finish-card__divider {
+  height: 1px;
+  background: var(--border);
+}
+
+.google-finish-card__terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.google-finish-card__terms input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.google-finish-card__terms a {
+  color: var(--primary-text);
+}
+
+.google-finish-card__action {
+  width: 100%;
+  min-height: 48px;
+}
+
+.google-finish-card__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.google-finish-card__link {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 16px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--primary-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: center;
+  text-decoration: underline;
+}
+
+.google-finish-card__error {
+  border: 1px solid var(--status-expired-text);
+  border-radius: var(--radius-control);
+  padding: var(--space-3);
+  background: var(--status-expired-bg);
+  color: var(--status-expired-text);
+  font-size: var(--font-size-sm);
+}
+
+.google-finish-card form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.google-finish-card form > label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.google-finish-card__password {
+  position: relative;
+}
+
+.google-finish-card__password input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) 4.5rem var(--space-2) var(--space-3);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.google-finish-card__password button {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--primary-text);
+  font-size: var(--font-size-sm);
+  transform: translateY(-50%);
+}
+
+@keyframes google-finish-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .google-finish-card__wrap {
+    animation: none;
+  }
+}
